@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "source": "public/images/gallery/photo-01.jpg",
+      "prefix": "gallery",
+      "targets": [
+        {
+          "table": "gallery_items",
+          "match": { "id": "00000000-0000-0000-0000-000000000000" },
+          "column": "image_url",
+          "mode": "set"
+        }
+      ]
+    },
+    {
+      "source": "public/images/itineraries/rome-for-kids/new-cover.jpg",
+      "prefix": "itineraries/heroes",
+      "targets": [
+        {
+          "table": "itineraries",
+          "match": { "slug": "rome-for-kids" },
+          "column": "hero_image_url",
+          "mode": "set"
+        },
+        {
+          "table": "itineraries",
+          "match": { "slug": "rome-for-kids" },
+          "column": "preview_image_urls",
+          "mode": "append-array"
+        }
+      ]
+    }
+  ]
+}
