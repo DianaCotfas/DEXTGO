@@ -28,6 +28,8 @@ export function IubendaBanner() {
       acceptButtonDisplay: true,
       customizeButtonDisplay: true,
       rejectButtonDisplay: true,
+      // Hide floating preference badge ("green i") and expose a footer link instead.
+      floatingPreferencesButtonDisplay: false,
       position: "float-bottom-center",
       acceptButtonColor: "#1D1D1F",
       acceptButtonCaptionColor: "white",

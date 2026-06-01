@@ -104,6 +104,14 @@ export function Footer() {
                   <FooterLinkItem link={link as FooterLink} />
                 </li>
               ))}
+              <li>
+                <a
+                  href="#"
+                  className="iubenda-cs-preferences-link text-sm text-white/35 hover:text-white/80 transition-colors duration-300"
+                >
+                  Cookie Preferences
+                </a>
+              </li>
             </ul>
           </div>
 
