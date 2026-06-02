@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingExcludes: {
+    "*": [
+      "node_modules/@swc/core-linux-x64-gnu/**",
+      "node_modules/@swc/core-linux-x64-musl/**",
+      "node_modules/@esbuild/linux-x64/**",
+    ],
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     qualities: [75, 90, 100],
