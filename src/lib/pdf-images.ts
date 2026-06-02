@@ -1,6 +1,5 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import sharp from "sharp";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
@@ -8,9 +7,6 @@ const MIME_BY_EXT: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
 };
 
 function mimeFor(filePath: string) {
@@ -35,31 +31,15 @@ function sniffMime(buffer: Buffer): string | null {
     const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
     if (isJpeg) return "image/jpeg";
   }
-  if (
-    buffer.length >= 12 &&
-    buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
-    buffer.subarray(8, 12).toString("ascii") === "WEBP"
-  ) {
-    return "image/webp";
-  }
-  if (buffer.length >= 6) {
-    const sig = buffer.subarray(0, 6).toString("ascii");
-    if (sig === "GIF87a" || sig === "GIF89a") return "image/gif";
-  }
   return null;
 }
 
-async function normalizeForPdf(buffer: Buffer, hintedMime?: string | null) {
+function normalizeForPdf(buffer: Buffer, hintedMime?: string | null) {
   const mime = sniffMime(buffer) ?? hintedMime ?? "application/octet-stream";
   if (mime === "image/png" || mime === "image/jpeg") {
     return { mime, buffer };
   }
-  try {
-    const jpeg = await sharp(buffer).jpeg({ quality: 88 }).toBuffer();
-    return { mime: "image/jpeg", buffer: jpeg };
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 async function readLocalAsDataUrl(localPath: string) {
@@ -68,7 +48,7 @@ async function readLocalAsDataUrl(localPath: string) {
   if (!absolute.startsWith(PUBLIC_DIR)) return null;
   try {
     const buffer = await fs.readFile(absolute);
-    const normalized = await normalizeForPdf(buffer, mimeFor(absolute));
+    const normalized = normalizeForPdf(buffer, mimeFor(absolute));
     if (!normalized) return null;
     return `data:${normalized.mime};base64,${normalized.buffer.toString("base64")}`;
   } catch {
@@ -82,7 +62,7 @@ async function fetchRemoteAsDataUrl(url: string) {
     if (!response.ok) return null;
     const contentType = response.headers.get("content-type");
     const buffer = Buffer.from(await response.arrayBuffer());
-    const normalized = await normalizeForPdf(buffer, contentType);
+    const normalized = normalizeForPdf(buffer, contentType);
     if (!normalized) return null;
     return `data:${normalized.mime};base64,${normalized.buffer.toString("base64")}`;
   } catch {
@@ -90,12 +70,6 @@ async function fetchRemoteAsDataUrl(url: string) {
   }
 }
 
-/**
- * Resolves an image URL into a value that @react-pdf/renderer can embed
- * reliably. Local /public assets are read from disk; remote URLs are fetched
- * server-side to bypass Next's image optimizer (which serves AVIF/WebP that
- * react-pdf can't decode and produces "Unknown version 65280" errors).
- */
 export async function resolvePdfImage(url: string | null | undefined) {
   if (!url) return null;
   if (url.startsWith("data:")) return url;

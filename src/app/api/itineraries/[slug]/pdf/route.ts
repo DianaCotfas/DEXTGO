@@ -1,7 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { renderToStream, type DocumentProps } from "@react-pdf/renderer";
 import { createElement, type ReactElement } from "react";
-import { ItineraryPdf } from "@/components/itinerary/itinerary-pdf";
 import { featuredItineraries } from "@/data/itineraries";
 import { ITINERARY_STEPS } from "@/data/itinerary-steps";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
@@ -181,6 +179,12 @@ export async function GET(_request: NextRequest, ctx: PdfRouteContext) {
       },
     ];
   }
+
+  const [{ renderToStream }, { ItineraryPdf }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("@/components/itinerary/itinerary-pdf"),
+  ]);
+  type DocumentProps = import("@react-pdf/renderer").DocumentProps;
 
   const element = createElement(ItineraryPdf, {
     itinerary: {
