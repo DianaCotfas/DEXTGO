@@ -57,11 +57,11 @@ export function IubendaBanner() {
         }}
       />
       <Script
-        src={`//cs.iubenda.com/autoblocking/${siteId}.js`}
+        src={`https://cs.iubenda.com/autoblocking/${siteId}.js`}
         strategy="afterInteractive"
       />
       <Script
-        src="//cdn.iubenda.com/cs/iubenda_cs.js"
+        src="https://cdn.iubenda.com/cs/iubenda_cs.js"
         strategy="afterInteractive"
       />
     </>

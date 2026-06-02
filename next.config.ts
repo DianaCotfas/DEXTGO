@@ -1,13 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  outputFileTracingExcludes: {
-    "*": [
-      "node_modules/@swc/core-linux-x64-gnu/**",
-      "node_modules/@swc/core-linux-x64-musl/**",
-      "node_modules/@esbuild/linux-x64/**",
-    ],
-  },
+  // Keep PDF route under Vercel's 300MB function limit (@react-pdf is large).
+  serverExternalPackages: ["@react-pdf/renderer"],
   images: {
     formats: ["image/avif", "image/webp"],
     qualities: [75, 90, 100],
@@ -88,6 +83,10 @@ const nextConfig: NextConfig = {
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: "upgrade-insecure-requests",
           },
         ],
       },
