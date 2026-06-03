@@ -4,6 +4,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import { CookieConsent } from "@/components/shared/cookie-consent";
 import { IubendaBanner } from "@/components/shared/iubenda-banner";
 import { hasIubendaBanner } from "@/lib/iubenda";
+import { getPublicSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,9 +20,11 @@ export const metadata: Metadata = {
   },
   description:
     "Discover unforgettable ready-made and custom-designed itineraries. Expert-curated travel experiences with interactive maps, audio guides, and insider tips.",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://dextgo.com"
-  ),
+  metadataBase: new URL(getPublicSiteUrl()),
+  icons: {
+    icon: [{ url: "/brand/dextgo-icon.png", type: "image/png" }],
+    apple: [{ url: "/brand/dextgo-icon.png", type: "image/png" }],
+  },
   openGraph: {
     title: "DEXTGO — Wander and Navigate Destinations",
     description:
