@@ -15,6 +15,10 @@ import {
   sendPrivatePaymentRequestEmail,
 } from "@/lib/email";
 import { getStripe, siteUrl } from "@/lib/stripe";
+import {
+  regenerateItineraryPdf,
+  regenerateItineraryPdfSilently,
+} from "@/lib/itineraries/pdf-cache";
 
 type ItineraryStepInsert = Database["public"]["Tables"]["itinerary_steps"]["Insert"];
 type ItineraryStepUpdate = Database["public"]["Tables"]["itinerary_steps"]["Update"];
@@ -255,6 +259,7 @@ export async function saveItinerary(formData: FormData) {
         .update(payload)
         .eq("id", parsed.id);
       if (error) throw error;
+      await regenerateItineraryPdfSilently(parsed.id, supabase);
       revalidatePath("/admin/itineraries");
       revalidatePath(`/itineraries/${slug}`);
       redirect(`/admin/itineraries/${parsed.id}?status=updated`);
@@ -288,6 +293,7 @@ export async function saveItinerary(formData: FormData) {
         .select("id")
         .single();
       if (error) throw error;
+      await regenerateItineraryPdfSilently(data.id, supabase);
       revalidatePath("/admin/itineraries");
       redirect(`/admin/itineraries/${data.id}?status=created`);
     }
@@ -315,6 +321,32 @@ export async function deleteItinerary(formData: FormData) {
   await client.from("itineraries").delete().eq("id", id);
   revalidatePath("/admin/itineraries");
   redirect("/admin/itineraries?status=deleted");
+}
+
+export async function regenerateItineraryPdfAction(formData: FormData) {
+  try {
+    await requireAdmin();
+    const itineraryId = formData.get("itinerary_id")?.toString();
+    if (!itineraryId) {
+      redirect("/admin/itineraries?status=pdf-regenerate-failed");
+    }
+
+    const supabase =
+      (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
+    if (!supabase) throw new Error("Supabase not configured");
+
+    const regenerated = await regenerateItineraryPdf(itineraryId, supabase);
+    revalidatePath("/admin/itineraries");
+
+    if (!regenerated?.key) {
+      redirect("/admin/itineraries?status=pdf-regenerate-failed");
+    }
+    redirect("/admin/itineraries?status=pdf-regenerated");
+  } catch (err) {
+    if (isNextRedirectError(err)) throw err;
+    const msg = encodeURIComponent(errorMessageFrom(err).slice(0, 220));
+    redirect(`/admin/itineraries?status=pdf-regenerate-failed&message=${msg}`);
+  }
 }
 
 const GrantAccessSchema = z.object({
@@ -706,6 +738,7 @@ export async function saveStep(formData: FormData) {
         .eq("id", parsed.id);
       if (error) throw error;
       await resequenceDaySteps(supabase, parsed.itinerary_id, parsed.day ?? existing.day ?? 1);
+      await regenerateItineraryPdfSilently(parsed.itinerary_id, supabase);
       revalidatePath(`/admin/itineraries/${parsed.itinerary_id}`);
       return { stepId: parsed.id };
     } else {
@@ -738,6 +771,7 @@ export async function saveStep(formData: FormData) {
         .single();
       if (error) throw error;
       await resequenceDaySteps(supabase, parsed.itinerary_id, parsed.day ?? 1);
+      await regenerateItineraryPdfSilently(parsed.itinerary_id, supabase);
       revalidatePath(`/admin/itineraries/${parsed.itinerary_id}`);
       return { stepId: inserted.id };
     }
@@ -781,6 +815,7 @@ export async function deleteStep(formData: FormData) {
   }
   if (itineraryId) {
     await resequenceDaySteps(supabase, itineraryId, rowBeforeDelete?.day ?? 1);
+    await regenerateItineraryPdfSilently(itineraryId, supabase);
   }
   if (itineraryId) revalidatePath(`/admin/itineraries/${itineraryId}`);
 }

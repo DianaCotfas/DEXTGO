@@ -6,23 +6,34 @@ import {
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/format";
+import { RegeneratePdfButton } from "@/components/admin/regenerate-pdf-button";
 import { syncStaticContentAction } from "../actions";
-import { deleteItinerary } from "./actions";
+import { deleteItinerary, regenerateItineraryPdfAction } from "./actions";
 
 export const metadata = { title: "Itineraries — Admin DEXTGO" };
 
 interface AdminItinerariesPageProps {
-  searchParams: Promise<{ status?: string; recipient_email?: string }>;
+  searchParams: Promise<{ status?: string; recipient_email?: string; message?: string }>;
 }
 
 export default async function AdminItinerariesPage({ searchParams }: AdminItinerariesPageProps) {
-  const { status, recipient_email } = await searchParams;
+  const { status, recipient_email, message } = await searchParams;
+  const readableMessage = (() => {
+    if (!message) return null;
+    try {
+      return decodeURIComponent(message);
+    } catch {
+      return message;
+    }
+  })();
   const supabase =
     (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
   const { data: dbItineraries } = supabase
     ? await supabase
         .from("itineraries")
-        .select("id, slug, title, country_slug, region_slug, price_cents, currency, status, updated_at")
+        .select(
+          "id, slug, title, country_slug, region_slug, price_cents, currency, status, updated_at, pdf_r2_key, pdf_generated_at",
+        )
         .order("updated_at", { ascending: false })
     : { data: null };
   const fallbackItineraries = featuredItineraries.map((item) => ({
@@ -34,6 +45,8 @@ export default async function AdminItinerariesPage({ searchParams }: AdminItiner
     price_cents: Math.max(0, Math.round((item.price ?? 0) * 100)),
     currency: "eur",
     status: "published",
+    pdf_r2_key: null,
+    pdf_generated_at: null,
     updated_at: "",
     source: "static" as const,
   }));
@@ -58,12 +71,27 @@ export default async function AdminItinerariesPage({ searchParams }: AdminItiner
       </header>
 
       {status && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+        <div
+          className={`rounded-xl px-4 py-2 text-sm ${
+            status === "pdf-regenerate-failed"
+              ? "border border-red-200 bg-red-50 text-red-700"
+              : "border border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
+        >
           {status === "deleted"
             ? "Itinerary deleted successfully."
             : status === "created"
               ? "Itinerary created successfully."
-              : "Itinerary updated successfully."}
+              : status === "pdf-regenerated"
+                ? "PDF regenerated and saved successfully."
+                : status === "pdf-regenerate-failed"
+                  ? "PDF regeneration failed."
+                  : "Itinerary updated successfully."}
+          {readableMessage && (
+            <p className="mt-1 text-xs">
+              {readableMessage}
+            </p>
+          )}
         </div>
       )}
       {recipient_email && (
@@ -99,13 +127,14 @@ export default async function AdminItinerariesPage({ searchParams }: AdminItiner
               <th className="text-left px-5 py-3">Country / region</th>
               <th className="text-left px-5 py-3">Price</th>
               <th className="text-left px-5 py-3">Status</th>
+              <th className="text-left px-5 py-3">PDF</th>
               <th className="text-right px-5 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-black/[0.05]">
             {itineraries.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-foreground/50">
+                <td colSpan={6} className="px-5 py-10 text-center text-foreground/50">
                   No itineraries yet. Create your first one to get started.
                 </td>
               </tr>
@@ -126,9 +155,35 @@ export default async function AdminItinerariesPage({ searchParams }: AdminItiner
                     </span>
                   )}
                 </td>
+                <td className="px-5 py-3">
+                  {it.source === "database" ? (
+                    <div className="space-y-1">
+                      <PdfStatusPill isSaved={Boolean(it.pdf_r2_key)} />
+                      <p className="text-[11px] text-foreground/50">
+                        {it.pdf_generated_at
+                          ? `Generated ${formatRelativeTimestamp(it.pdf_generated_at)}`
+                          : "Not generated yet"}
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-foreground/45">N/A</span>
+                  )}
+                </td>
                 <td className="px-5 py-3 text-right">
                   {it.source === "database" ? (
-                    <div className="inline-flex items-center gap-3">
+                    <div className="inline-flex flex-wrap items-center justify-end gap-3">
+                      <Link
+                        href={`/api/itineraries/${it.slug}/pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-sky-700 hover:underline"
+                      >
+                        View PDF
+                      </Link>
+                      <form action={regenerateItineraryPdfAction}>
+                        <input type="hidden" name="itinerary_id" value={it.id} />
+                        <RegeneratePdfButton />
+                      </form>
                       <Link
                         href={`/admin/itineraries/${it.id}${recipient_email ? `?recipient_email=${encodeURIComponent(recipient_email)}` : ""}`}
                         className="text-xs font-semibold text-foreground hover:underline"
@@ -157,6 +212,29 @@ export default async function AdminItinerariesPage({ searchParams }: AdminItiner
         </table>
       </div>
     </div>
+  );
+}
+
+function formatRelativeTimestamp(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "just now";
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(parsed);
+}
+
+function PdfStatusPill({ isSaved }: { isSaved: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+        isSaved
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-amber-50 text-amber-700"
+      }`}
+    >
+      {isSaved ? "Saved" : "Not saved"}
+    </span>
   );
 }
 

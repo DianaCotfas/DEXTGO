@@ -1,6 +1,5 @@
 "use client";
 
-import { useTransition } from "react";
 import { Info } from "lucide-react";
 
 declare global {
@@ -9,58 +8,15 @@ declare global {
   }
 }
 
-function isMobileDevice(): boolean {
-  return (
-    typeof navigator !== "undefined" &&
-    /iP(ad|hone|od)|Android|Mobile/i.test(navigator.userAgent)
-  );
-}
-
 export function DownloadPdfButton({ slug }: { slug: string }) {
-  const [pending, startTransition] = useTransition();
-  const helpText = "For any download issues, please contact support@dextgo.com";
+  const helpText =
+    "Downloads the latest saved PDF. If the file is still refreshing, we open the print-friendly page as fallback.";
 
   function onDownload() {
-    // Track PDF download event in GA4
     window.gtag?.("event", "pdf_download", {
       itinerary_slug: slug,
     });
-
-    // On mobile, direct navigation is more reliable than blob downloads.
-    if (isMobileDevice()) {
-      window.location.assign(`/api/itineraries/${slug}/pdf`);
-      return;
-    }
-
-    startTransition(async () => {
-      const response = await fetch(`/api/itineraries/${slug}/pdf`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        alert(body?.message ?? "Couldn't generate the PDF. Please try again.");
-        return;
-      }
-
-      const contentType = response.headers.get("content-type") ?? "";
-      if (!contentType.includes("application/pdf")) {
-        alert("The server returned an unexpected response. Please try again.");
-        return;
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = `dextgo-${slug}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-    });
+    window.open(`/api/itineraries/${slug}/pdf`, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -68,10 +24,9 @@ export function DownloadPdfButton({ slug }: { slug: string }) {
       <button
         type="button"
         onClick={onDownload}
-        disabled={pending}
-        className="rounded-full border border-black/15 text-foreground text-sm font-semibold px-5 py-2.5 hover:bg-black/[0.04] disabled:opacity-60"
+        className="rounded-full border border-black/15 text-foreground text-sm font-semibold px-5 py-2.5 hover:bg-black/[0.04]"
       >
-        {pending ? "Preparing PDF..." : "Download PDF"}
+        Download PDF
       </button>
 
       <details className="group relative">

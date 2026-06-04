@@ -141,6 +141,8 @@ export interface Database {
           stripe_price_id: string | null;
           category: string | null;
           category_color: string | null;
+          pdf_r2_key: string | null;
+          pdf_generated_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -164,6 +166,8 @@ export interface Database {
           stripe_price_id?: string | null;
           category?: string | null;
           category_color?: string | null;
+          pdf_r2_key?: string | null;
+          pdf_generated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -187,6 +191,8 @@ export interface Database {
           stripe_price_id?: string | null;
           category?: string | null;
           category_color?: string | null;
+          pdf_r2_key?: string | null;
+          pdf_generated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
