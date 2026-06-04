@@ -70,6 +70,12 @@ async function fetchRemoteAsDataUrl(url: string) {
   }
 }
 
+/**
+ * Resolves an image URL into a value that @react-pdf/renderer can embed
+ * reliably. Local /public assets are read from disk; remote URLs are fetched
+ * server-side to bypass Next's image optimizer (which serves AVIF/WebP that
+ * react-pdf can't decode and produces "Unknown version 65280" errors).
+ */
 export async function resolvePdfImage(url: string | null | undefined) {
   if (!url) return null;
   if (url.startsWith("data:")) return url;

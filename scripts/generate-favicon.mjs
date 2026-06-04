@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import toIco from "to-ico";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,8 @@ async function run() {
   const brandIcon = path.join(webRoot, "public", "brand", "dextgo-icon.png");
   const appIcon = path.join(webRoot, "src", "app", "icon.png");
   const appleIcon = path.join(webRoot, "src", "app", "apple-icon.png");
+  const appFavicon = path.join(webRoot, "src", "app", "favicon.ico");
+  const publicFavicon = path.join(webRoot, "public", "favicon.ico");
 
   await sharp(iconSource)
     .resize(512, 512, { fit: "contain", background: { r: 29, g: 29, b: 31, alpha: 1 } })
@@ -34,9 +37,20 @@ async function run() {
     .png()
     .toFile(appleIcon);
 
-  const faviconIco = path.join(webRoot, "src", "app", "favicon.ico");
-  await fs.rm(faviconIco, { force: true });
-  console.log("Generated:", brandIcon, appIcon, appleIcon);
+  const png16 = await sharp(iconSource)
+    .resize(16, 16, { fit: "contain", background: { r: 29, g: 29, b: 31, alpha: 1 } })
+    .png()
+    .toBuffer();
+  const png32 = await sharp(iconSource)
+    .resize(32, 32, { fit: "contain", background: { r: 29, g: 29, b: 31, alpha: 1 } })
+    .png()
+    .toBuffer();
+  const ico = await toIco([png16, png32]);
+
+  await fs.writeFile(appFavicon, ico);
+  await fs.writeFile(publicFavicon, ico);
+
+  console.log("Generated:", brandIcon, appIcon, appleIcon, appFavicon, publicFavicon);
 }
 
 run().catch((err) => {

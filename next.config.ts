@@ -14,8 +14,11 @@ const traceExcludes = [
 ];
 
 const nextConfig: NextConfig = {
-  // Keep PDF route under Vercel's 300MB function limit (@react-pdf is large).
   serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingExcludes: {
+    "*": traceExcludes,
+    "/api/itineraries/[slug]/pdf": traceExcludes,
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     qualities: [75, 90, 100],
