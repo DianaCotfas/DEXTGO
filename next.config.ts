@@ -6,8 +6,6 @@ const traceExcludes = [
   "node_modules/@esbuild/linux-x64/**",
   "node_modules/@napi-rs/**",
   "node_modules/canvas/**",
-  "node_modules/pdfjs-dist/**",
-  "node_modules/pdf-to-png-converter/**",
   "node_modules/sharp/**",
   "node_modules/mapbox-gl/**",
   "node_modules/@aws-sdk/**",
