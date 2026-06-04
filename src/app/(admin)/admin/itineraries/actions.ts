@@ -15,10 +15,6 @@ import {
   sendPrivatePaymentRequestEmail,
 } from "@/lib/email";
 import { getStripe, siteUrl } from "@/lib/stripe";
-import {
-  regenerateItineraryPdf,
-  regenerateItineraryPdfSilently,
-} from "@/lib/itineraries/pdf-cache";
 
 type ItineraryStepInsert = Database["public"]["Tables"]["itinerary_steps"]["Insert"];
 type ItineraryStepUpdate = Database["public"]["Tables"]["itinerary_steps"]["Update"];
@@ -200,6 +196,24 @@ async function ensureUniqueSlug(
   return `${safeBase}-${Date.now().toString(36)}`;
 }
 
+async function regenerateItineraryPdfCached(
+  itineraryId: string,
+  supabase: SupabaseClient<Database>,
+) {
+  const { regenerateItineraryPdfSilently } = await import(
+    "@/lib/itineraries/pdf-cache"
+  );
+  return regenerateItineraryPdfSilently(itineraryId, supabase);
+}
+
+async function regenerateItineraryPdfStrict(
+  itineraryId: string,
+  supabase: SupabaseClient<Database>,
+) {
+  const { regenerateItineraryPdf } = await import("@/lib/itineraries/pdf-cache");
+  return regenerateItineraryPdf(itineraryId, supabase);
+}
+
 export async function saveItinerary(formData: FormData) {
   const raw = Object.fromEntries(formData);
   try {
@@ -259,7 +273,7 @@ export async function saveItinerary(formData: FormData) {
         .update(payload)
         .eq("id", parsed.id);
       if (error) throw error;
-      await regenerateItineraryPdfSilently(parsed.id, supabase);
+      await regenerateItineraryPdfCached(parsed.id, supabase);
       revalidatePath("/admin/itineraries");
       revalidatePath(`/itineraries/${slug}`);
       redirect(`/admin/itineraries/${parsed.id}?status=updated`);
@@ -293,7 +307,7 @@ export async function saveItinerary(formData: FormData) {
         .select("id")
         .single();
       if (error) throw error;
-      await regenerateItineraryPdfSilently(data.id, supabase);
+      await regenerateItineraryPdfCached(data.id, supabase);
       revalidatePath("/admin/itineraries");
       redirect(`/admin/itineraries/${data.id}?status=created`);
     }
@@ -335,7 +349,7 @@ export async function regenerateItineraryPdfAction(formData: FormData) {
       (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
     if (!supabase) throw new Error("Supabase not configured");
 
-    const regenerated = await regenerateItineraryPdf(itineraryId, supabase);
+    const regenerated = await regenerateItineraryPdfStrict(itineraryId, supabase);
     revalidatePath("/admin/itineraries");
 
     if (!regenerated?.key) {
@@ -738,7 +752,7 @@ export async function saveStep(formData: FormData) {
         .eq("id", parsed.id);
       if (error) throw error;
       await resequenceDaySteps(supabase, parsed.itinerary_id, parsed.day ?? existing.day ?? 1);
-      await regenerateItineraryPdfSilently(parsed.itinerary_id, supabase);
+      await regenerateItineraryPdfCached(parsed.itinerary_id, supabase);
       revalidatePath(`/admin/itineraries/${parsed.itinerary_id}`);
       return { stepId: parsed.id };
     } else {
@@ -771,7 +785,7 @@ export async function saveStep(formData: FormData) {
         .single();
       if (error) throw error;
       await resequenceDaySteps(supabase, parsed.itinerary_id, parsed.day ?? 1);
-      await regenerateItineraryPdfSilently(parsed.itinerary_id, supabase);
+      await regenerateItineraryPdfCached(parsed.itinerary_id, supabase);
       revalidatePath(`/admin/itineraries/${parsed.itinerary_id}`);
       return { stepId: inserted.id };
     }
@@ -815,7 +829,7 @@ export async function deleteStep(formData: FormData) {
   }
   if (itineraryId) {
     await resequenceDaySteps(supabase, itineraryId, rowBeforeDelete?.day ?? 1);
-    await regenerateItineraryPdfSilently(itineraryId, supabase);
+    await regenerateItineraryPdfCached(itineraryId, supabase);
   }
   if (itineraryId) revalidatePath(`/admin/itineraries/${itineraryId}`);
 }
