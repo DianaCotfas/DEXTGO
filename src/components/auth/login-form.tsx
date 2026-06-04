@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getPublicSiteUrl } from "@/lib/site-url";
 
 type Mode = "magic" | "password";
 
@@ -13,18 +14,7 @@ export function LoginForm() {
   const search = useSearchParams();
   const nextRaw = search.get("next");
   const next = nextRaw && nextRaw.startsWith("/") ? nextRaw : "/account";
-  const browserOriginRaw =
-    typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "";
-  const browserHost =
-    typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
-  const configuredAuthOriginRaw =
-    process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL?.trim() ?? "";
-  const configuredAuthOrigin = configuredAuthOriginRaw.replace(/\/$/, "");
-  const configuredOriginRaw = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "";
-  const configuredOrigin = configuredOriginRaw.replace(/\/$/, "");
-  const isLocalBrowserHost = ["0.0.0.0", "127.0.0.1", "localhost"].includes(browserHost);
-  const browserOrigin = isLocalBrowserHost ? "" : browserOriginRaw;
-  const siteUrl = configuredAuthOrigin || browserOrigin || configuredOrigin;
+  const siteUrl = getPublicSiteUrl();
   const callbackCode = search.get("error");
   const callbackDetail = search.get("detail");
 

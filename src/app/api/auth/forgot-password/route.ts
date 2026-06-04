@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { env, isConfigured } from "@/lib/env";
+import { isConfigured } from "@/lib/env";
+import { getPublicSiteUrl } from "@/lib/site-url";
 import {
   createSupabaseAdminClient,
   createSupabaseServerClient,
@@ -12,11 +13,7 @@ const schema = z.object({
 });
 
 function resetRedirectUrl() {
-  const base =
-    env.NEXT_PUBLIC_AUTH_REDIRECT_URL.trim() ||
-    env.NEXT_PUBLIC_SITE_URL.trim() ||
-    "http://localhost:3000";
-  return `${base.replace(/\/$/, "")}/api/auth/reset-password`;
+  return `${getPublicSiteUrl()}/api/auth/reset-password`;
 }
 
 export async function POST(request: NextRequest) {

@@ -1,6 +1,12 @@
 import type { NextRequest } from "next/server";
+import { getPublicSiteOrigin } from "@/lib/site-url";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
+
+const BLOCKED_PRODUCTION_HOSTS = new Set([
+  "dextgo.imjunaidafzal.com",
+  "imjunaidafzal.com",
+]);
 
 function firstHeader(request: NextRequest, key: string): string | null {
   const value = request.headers.get(key);
@@ -30,6 +36,11 @@ function isLocalHostname(hostname: string): boolean {
   return LOCAL_HOSTS.has(lower) || lower.endsWith(".local");
 }
 
+function isBlockedHostname(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  return BLOCKED_PRODUCTION_HOSTS.has(lower) || lower.endsWith(".imjunaidafzal.com");
+}
+
 /**
  * Resolve the public origin used by auth redirects.
  * In production, local/internal hosts are ignored to prevent 0.0.0.0 callbacks.
@@ -53,10 +64,20 @@ export function resolveAuthRedirectOrigin(request: NextRequest): string {
   for (const candidate of candidates) {
     const parsed = parseCandidate(candidate);
     if (!parsed) continue;
-    if (process.env.NODE_ENV === "production" && isLocalHostname(parsed.hostname)) {
-      continue;
+    if (process.env.NODE_ENV === "production") {
+      if (isLocalHostname(parsed.hostname) || isBlockedHostname(parsed.hostname)) {
+        continue;
+      }
     }
     return parsed.origin;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    const requestHost = request.nextUrl.hostname.toLowerCase();
+    if (!isLocalHostname(requestHost) && !isBlockedHostname(requestHost)) {
+      return request.nextUrl.origin;
+    }
+    return getPublicSiteOrigin();
   }
 
   return request.nextUrl.origin;

@@ -1,5 +1,18 @@
 import type { NextConfig } from "next";
 
+const traceExcludes = [
+  "node_modules/@swc/core-linux-x64-gnu/**",
+  "node_modules/@swc/core-linux-x64-musl/**",
+  "node_modules/@esbuild/linux-x64/**",
+  "node_modules/@napi-rs/**",
+  "node_modules/canvas/**",
+  "node_modules/pdfjs-dist/**",
+  "node_modules/pdf-to-png-converter/**",
+  "node_modules/sharp/**",
+  "node_modules/mapbox-gl/**",
+  "node_modules/@aws-sdk/**",
+];
+
 const nextConfig: NextConfig = {
   // Keep PDF route under Vercel's 300MB function limit (@react-pdf is large).
   serverExternalPackages: ["@react-pdf/renderer"],

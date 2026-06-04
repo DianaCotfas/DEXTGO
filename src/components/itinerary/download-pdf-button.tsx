@@ -9,10 +9,10 @@ declare global {
   }
 }
 
-function isIOS(): boolean {
+function isMobileDevice(): boolean {
   return (
     typeof navigator !== "undefined" &&
-    /iP(ad|hone|od)/i.test(navigator.userAgent)
+    /iP(ad|hone|od)|Android|Mobile/i.test(navigator.userAgent)
   );
 }
 
@@ -26,11 +26,9 @@ export function DownloadPdfButton({ slug }: { slug: string }) {
       itinerary_slug: slug,
     });
 
-    // On iOS, direct navigation is more reliable than blob downloads,
-    // especially for larger files and in-app browsers.
-    if (isIOS()) {
-      const directUrl = `/api/itineraries/${slug}/pdf?download=1`;
-      window.location.assign(directUrl);
+    // On mobile, direct navigation is more reliable than blob downloads.
+    if (isMobileDevice()) {
+      window.location.assign(`/api/itineraries/${slug}/pdf`);
       return;
     }
 

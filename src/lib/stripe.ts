@@ -1,6 +1,7 @@
 import "server-only";
 import Stripe from "stripe";
 import { env, isConfigured, requireEnv } from "@/lib/env";
+import { getPublicSiteUrl } from "@/lib/site-url";
 
 let cached: Stripe | null = null;
 
@@ -29,5 +30,4 @@ export function getStripe(): Stripe | null {
 
 export const isStripeConfigured = () => isConfigured("stripe");
 
-export const siteUrl = () =>
-  env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "") || "http://localhost:3000";
+export const siteUrl = () => getPublicSiteUrl();

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPurchased } from "@/lib/purchases";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 interface PdfRouteContext {
   params: Promise<{ slug: string }>;

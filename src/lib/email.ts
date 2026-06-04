@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
-import { adminEmailAllowlist, env, isConfigured } from "@/lib/env";
+import { env, isConfigured } from "@/lib/env";
+import { getPublicSiteUrl } from "@/lib/site-url";
 import { formatPrice } from "@/lib/format";
 
 let cached: Resend | null = null;
@@ -26,7 +27,6 @@ function resolveNotificationRecipients() {
   const recipients = new Set<string>();
   for (const email of parseEmailList(env.CONTACT_NOTIFICATION_EMAILS)) recipients.add(email);
   for (const email of parseEmailList(env.RESEND_INBOX_EMAIL)) recipients.add(email);
-  for (const email of adminEmailAllowlist()) recipients.add(email);
   if (recipients.size === 0) recipients.add(env.RESEND_FROM_EMAIL);
   return [...recipients];
 }
@@ -119,7 +119,7 @@ export async function sendOrderConfirmationEmail(params: {
   amountCents: number;
   currency: string;
 }) {
-  const link = `${env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")}/account/itineraries`;
+  const link = `${getPublicSiteUrl()}/account/itineraries`;
   const receipt = formatPrice(params.amountCents, params.currency);
   const safeTitle = escapeHtml(params.itineraryTitle);
   const html = wrap(
@@ -371,7 +371,7 @@ export async function sendContactNotification(params: {
 }
 
 export async function sendNewsletterWelcome(email: string) {
-  const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  const siteUrl = getPublicSiteUrl();
   const blogUrl = `${siteUrl}/blog`;
   const html = wrap(
     "Welcome to DEXTGO",
