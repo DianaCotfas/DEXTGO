@@ -158,7 +158,7 @@ async function createCheckoutSession({
 
   try {
     // Faster path: request card+paypal immediately (avoids slow failed dynamic retry).
-    return stripe.checkout.sessions.create({
+    return await stripe.checkout.sessions.create({
       ...baseParams,
       payment_method_types: ["card", "paypal"],
     });
@@ -169,7 +169,7 @@ async function createCheckoutSession({
       "[checkout] paypal-unavailable, falling back to card-only",
       paypalMessage,
     );
-    return stripe.checkout.sessions.create({
+    return await stripe.checkout.sessions.create({
       ...baseParams,
       payment_method_types: ["card"],
     });
