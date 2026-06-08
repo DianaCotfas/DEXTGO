@@ -21,8 +21,11 @@ export const metadata: Metadata = {
   description:
     "Discover unforgettable ready-made and custom-designed itineraries. Expert-curated travel experiences with interactive maps, audio guides, and insider tips.",
   metadataBase: new URL(getPublicSiteUrl()),
-  // Icons: use src/app/favicon.ico, icon.png, apple-icon.png (see scripts/generate-favicon.mjs).
-  // Avoid duplicate metadata icons — they load after /favicon.ico and cause a visible flash.
+  icons: {
+    icon: [{ url: "/brand/dextgo-icon.png", type: "image/png" }],
+    apple: [{ url: "/brand/dextgo-icon.png", type: "image/png" }],
+    shortcut: ["/brand/dextgo-icon.png"],
+  },
   openGraph: {
     title: "DEXTGO — Wander and Navigate Destinations",
     description:

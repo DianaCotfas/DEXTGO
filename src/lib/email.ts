@@ -124,18 +124,80 @@ export async function sendOrderConfirmationEmail(params: {
   const safeTitle = escapeHtml(params.itineraryTitle);
   const html = wrap(
     "Your DEXTGO itinerary",
-    `Your itinerary ${params.itineraryTitle} is ready in your dashboard.`,
+    `Payment received for ${params.itineraryTitle}.`,
     `
       <p style="margin:0 0 10px 0;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;">Order confirmation</p>
       <h1 style="margin:0 0 14px 0;font-size:28px;line-height:1.2;font-weight:700;color:#0f172a;">
-        Your itinerary is ready.
+        Payment received.
       </h1>
       <p style="margin:0 0 18px 0;font-size:15px;line-height:1.7;color:#334155;">
-        Thanks for choosing DEXTGO. <strong>${safeTitle}</strong> is now unlocked with map navigation, audio guides, and downloadable PDF access.
+        Thank you for choosing DEXTGO. Your itinerary <strong>${safeTitle}</strong> is now in production and our team is finalizing it for delivery.
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;">
         <tr><td style="padding:14px 16px;">
           <p style="margin:0 0 6px 0;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Purchase details</p>
+          <p style="margin:0;font-size:14px;color:#0f172a;"><strong>Itinerary:</strong> ${safeTitle}</p>
+          <p style="margin:4px 0 0 0;font-size:14px;color:#0f172a;"><strong>Receipt:</strong> ${receipt}</p>
+        </td></tr>
+      </table>
+      <p style="margin:0 0 22px 0;">
+        <a href="${link}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:999px;">Open my itineraries</a>
+      </p>
+      <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">
+        We will email you again as soon as the itinerary is officially ready. Need help in the meantime? Reply to this email.
+      </p>
+    `,
+  );
+
+  const text = [
+    "Payment received for your itinerary.",
+    "",
+    `Itinerary: ${params.itineraryTitle}`,
+    `Receipt: ${receipt}`,
+    "",
+    "Status: Your itinerary is being finalized and will be delivered as soon as it is ready.",
+    "",
+    `Open your dashboard: ${link}`,
+    "",
+    "Need help? Reply to this email.",
+  ].join("\n");
+
+  return sendEmail({
+    to: params.to,
+    subject: `Your DEXTGO itinerary — ${params.itineraryTitle}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Delivery email template reserved for when Diana manually marks an itinerary as complete.
+ * Not auto-triggered at payment time.
+ */
+export async function sendItineraryReadyEmail(params: {
+  to: string;
+  itineraryTitle: string;
+  itinerarySlug: string;
+  amountCents: number;
+  currency: string;
+}) {
+  const link = `${getPublicSiteUrl()}/account/itineraries`;
+  const receipt = formatPrice(params.amountCents, params.currency);
+  const safeTitle = escapeHtml(params.itineraryTitle);
+  const html = wrap(
+    "Your DEXTGO itinerary is ready",
+    `Your itinerary ${params.itineraryTitle} is ready in your dashboard.`,
+    `
+      <p style="margin:0 0 10px 0;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;">Itinerary delivery</p>
+      <h1 style="margin:0 0 14px 0;font-size:28px;line-height:1.2;font-weight:700;color:#0f172a;">
+        Your itinerary is ready.
+      </h1>
+      <p style="margin:0 0 18px 0;font-size:15px;line-height:1.7;color:#334155;">
+        Great news. <strong>${safeTitle}</strong> is now ready with full map navigation, audio guides, and downloadable PDF access.
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;">
+        <tr><td style="padding:14px 16px;">
+          <p style="margin:0 0 6px 0;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Order details</p>
           <p style="margin:0;font-size:14px;color:#0f172a;"><strong>Itinerary:</strong> ${safeTitle}</p>
           <p style="margin:4px 0 0 0;font-size:14px;color:#0f172a;"><strong>Receipt:</strong> ${receipt}</p>
         </td></tr>
@@ -162,7 +224,7 @@ export async function sendOrderConfirmationEmail(params: {
 
   return sendEmail({
     to: params.to,
-    subject: `Your DEXTGO itinerary — ${params.itineraryTitle}`,
+    subject: `Your DEXTGO itinerary is ready — ${params.itineraryTitle}`,
     html,
     text,
   });
@@ -480,22 +542,25 @@ export async function sendPasswordResetEmail(params: {
 }) {
   const safeResetUrl = escapeHtml(params.resetUrl);
   const html = wrap(
-    "Reset your DEXTGO password",
-    "Use this secure link to reset your DEXTGO password.",
+    "Access your DEXTGO account",
+    "Use this secure link to access your DEXTGO account.",
     `
       <p style="margin:0 0 10px 0;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;">Account security</p>
       <h1 style="margin:0 0 14px 0;font-size:26px;line-height:1.2;font-weight:700;color:#0f172a;">
-        Reset your password
+        Access your account
       </h1>
       <p style="margin:0 0 18px 0;font-size:15px;line-height:1.7;color:#334155;">
-        We received a request to reset your DEXTGO password. Use the secure button below to choose a new one.
+        We received a request to access your DEXTGO account. Use the secure button below to continue with Magic Link sign-in.
       </p>
       <p style="margin:0 0 20px 0;">
-        <a href="${params.resetUrl}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:999px;">Reset password</a>
+        <a href="${params.resetUrl}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:999px;">Access account</a>
       </p>
       <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">
         If the button does not open, copy and paste this link into your browser:<br />
         <span style="word-break:break-all;color:#334155;">${safeResetUrl}</span>
+      </p>
+      <p style="margin:12px 0 0 0;font-size:13px;line-height:1.6;color:#64748b;">
+        Once you are inside your dashboard, you can change your password from account settings.
       </p>
       <p style="margin:12px 0 0 0;font-size:12px;line-height:1.6;color:#94a3b8;">
         If you did not request this, you can safely ignore this email.
@@ -504,17 +569,19 @@ export async function sendPasswordResetEmail(params: {
   );
 
   const text = [
-    "Reset your DEXTGO password",
+    "Access your DEXTGO account",
     "",
-    "Use this secure link to reset your password:",
+    "Use this secure Magic Link to access your account:",
     params.resetUrl,
+    "",
+    "After signing in, you can change your password from dashboard settings.",
     "",
     "If you did not request this, you can ignore this email.",
   ].join("\n");
 
   return sendEmail({
     to: params.to,
-    subject: "DEXTGO — Reset your password",
+    subject: "DEXTGO — Access your account",
     html,
     text,
   });

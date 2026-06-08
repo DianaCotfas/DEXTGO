@@ -154,24 +154,27 @@ function BlogBody({ blocks }: { blocks: BlogBlock[] }) {
               </ul>
             );
           case "image":
-            return (
-              <figure key={i} className="my-10">
-                <div className="rounded-2xl overflow-hidden card-shadow bg-[#F5F5F7] flex items-center justify-center mx-auto max-h-[85vh]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={block.src}
-                    alt={block.alt ?? ""}
-                    loading="lazy"
-                    className="block w-auto h-auto max-w-full max-h-[85vh] object-contain"
-                  />
-                </div>
-                {block.caption && (
-                  <figcaption className="mt-3 text-xs text-muted-foreground text-center italic">
-                    {block.caption}
-                  </figcaption>
-                )}
-              </figure>
-            );
+            {
+              const src = resolveR2Url(block.src);
+              return (
+                <figure key={i} className="my-10">
+                  <div className="rounded-2xl overflow-hidden card-shadow bg-[#F5F5F7] flex items-center justify-center mx-auto max-h-[85vh]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt={block.alt ?? ""}
+                      loading="lazy"
+                      className="block w-auto h-auto max-w-full max-h-[85vh] object-contain"
+                    />
+                  </div>
+                  {block.caption && (
+                    <figcaption className="mt-3 text-xs text-muted-foreground text-center italic">
+                      {block.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              );
+            }
           default:
             return null;
         }

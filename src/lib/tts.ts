@@ -31,12 +31,102 @@ export async function generateSpeech(params: {
   provider?: TtsProvider;
 }): Promise<TtsResult> {
   const provider = params.provider ?? resolveTtsProvider();
+  const chunks = splitTextForTts(
+    params.text,
+    resolveProviderChunkLimit(provider),
+  );
+  if (chunks.length === 0) {
+    throw new Error("No text provided for audio generation.");
+  }
+  if (chunks.length === 1) {
+    return generateSpeechChunk(chunks[0], provider);
+  }
+
+  const buffers: Buffer[] = [];
+  for (const chunk of chunks) {
+    const result = await generateSpeechChunk(chunk, provider);
+    buffers.push(result.buffer);
+  }
+  return { buffer: Buffer.concat(buffers), contentType: "audio/mpeg" };
+}
+
+function resolveProviderChunkLimit(provider: TtsProvider): number {
+  const raw =
+    provider === "openai"
+      ? process.env.OPENAI_TTS_MAX_CHARS
+      : process.env.ELEVENLABS_TTS_MAX_CHARS;
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed) && parsed > 200) return Math.floor(parsed);
+  // Conservative defaults to stay below provider payload limits.
+  return provider === "openai" ? 3500 : 2200;
+}
+
+function splitTextForTts(text: string, maxChars: number): string[] {
+  const normalized = text.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return [];
+  if (normalized.length <= maxChars) return [normalized];
+
+  const chunks: string[] = [];
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  let current = "";
+  for (const paragraph of paragraphs) {
+    const sentences = paragraph
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    for (const sentence of sentences) {
+      for (const part of splitOversizedText(sentence, maxChars)) {
+        if (!current) {
+          current = part;
+          continue;
+        }
+        if (current.length + 1 + part.length <= maxChars) {
+          current = `${current} ${part}`;
+          continue;
+        }
+        chunks.push(current);
+        current = part;
+      }
+    }
+    if (current && current.length + 1 <= maxChars) {
+      current = `${current}\n`;
+    }
+  }
+
+  if (current.trim()) chunks.push(current.trim());
+  return chunks.length > 0 ? chunks : splitOversizedText(normalized, maxChars);
+}
+
+function splitOversizedText(text: string, maxChars: number): string[] {
+  if (text.length <= maxChars) return [text];
+  const parts: string[] = [];
+  let remaining = text.trim();
+
+  while (remaining.length > maxChars) {
+    let cut = remaining.lastIndexOf(" ", maxChars);
+    if (cut <= 0) cut = maxChars;
+    const chunk = remaining.slice(0, cut).trim();
+    if (chunk) parts.push(chunk);
+    remaining = remaining.slice(cut).trim();
+  }
+  if (remaining) parts.push(remaining);
+  return parts;
+}
+
+async function generateSpeechChunk(
+  text: string,
+  provider: TtsProvider,
+): Promise<TtsResult> {
   if (provider === "openai") {
-    return generateOpenAiTts(params.text);
+    return generateOpenAiTts(text);
   }
   // ElevenLabs
   const { generateAudio } = await import("@/lib/elevenlabs");
-  return generateAudio({ text: params.text });
+  return generateAudio({ text });
 }
 
 async function generateOpenAiTts(text: string): Promise<TtsResult> {

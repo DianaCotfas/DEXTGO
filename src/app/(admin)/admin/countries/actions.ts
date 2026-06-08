@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseAdminClient,
+  createSupabaseServerClient,
+} from "@/lib/supabase/server";
 
 const CountrySchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/),
@@ -17,10 +20,12 @@ const CountrySchema = z.object({
 
 export async function saveCountry(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase =
+    (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
   if (!supabase) throw new Error("Supabase not configured");
   const parsed = CountrySchema.parse(Object.fromEntries(formData));
-  await supabase.from("countries").upsert(parsed);
+  const { error } = await supabase.from("countries").upsert(parsed);
+  if (error) throw error;
   revalidatePath("/admin/countries");
   revalidatePath(`/admin/countries/${parsed.slug}`);
   redirect(`/admin/countries/${parsed.slug}`);
@@ -38,10 +43,12 @@ const RegionSchema = z.object({
 
 export async function saveRegion(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
+  const supabase =
+    (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
   if (!supabase) throw new Error("Supabase not configured");
   const parsed = RegionSchema.parse(Object.fromEntries(formData));
-  await supabase.from("regions").upsert(parsed);
+  const { error } = await supabase.from("regions").upsert(parsed);
+  if (error) throw error;
   revalidatePath(`/admin/countries/${parsed.country_slug}`);
 }
 
@@ -50,8 +57,14 @@ export async function deleteRegion(formData: FormData) {
   const country = formData.get("country_slug")?.toString();
   const slug = formData.get("slug")?.toString();
   if (!country || !slug) return;
-  const supabase = await createSupabaseServerClient();
+  const supabase =
+    (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
   if (!supabase) throw new Error("Supabase not configured");
-  await supabase.from("regions").delete().eq("country_slug", country).eq("slug", slug);
+  const { error } = await supabase
+    .from("regions")
+    .delete()
+    .eq("country_slug", country)
+    .eq("slug", slug);
+  if (error) throw error;
   revalidatePath(`/admin/countries/${country}`);
 }

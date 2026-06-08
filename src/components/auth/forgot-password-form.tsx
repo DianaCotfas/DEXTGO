@@ -28,7 +28,7 @@ export function ForgotPasswordForm() {
         return;
       }
       setMessage(
-        "If an account exists for this email, you will receive a reset link shortly. Check your inbox (and spam folder).",
+        "If an account exists for this email, you will receive a Magic Link shortly. Check your inbox (and spam folder).",
       );
     });
   }
@@ -55,7 +55,7 @@ export function ForgotPasswordForm() {
         disabled={pending}
         className="w-full rounded-full bg-[#1D1D1F] text-white text-sm font-semibold py-3 hover:bg-[#1D1D1F]/90 disabled:opacity-60 transition-colors"
       >
-        {pending ? "Sending…" : "Send reset link"}
+        {pending ? "Sending…" : "Send Magic Link"}
       </button>
 
       <p className="text-center text-xs text-foreground/60">

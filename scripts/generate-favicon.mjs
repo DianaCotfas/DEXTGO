@@ -23,26 +23,41 @@ async function run() {
   const publicFavicon = path.join(webRoot, "public", "favicon.ico");
 
   await sharp(iconSource)
-    .resize(512, 512, { fit: "contain", background: { r: 29, g: 29, b: 31, alpha: 1 } })
+    .resize(512, 512, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    })
     .png()
     .toFile(brandIcon);
 
   await sharp(iconSource)
-    .resize(32, 32, { fit: "contain", background: { r: 29, g: 29, b: 31, alpha: 1 } })
+    .resize(32, 32, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    })
     .png()
     .toFile(appIcon);
 
   await sharp(iconSource)
-    .resize(180, 180, { fit: "contain", background: { r: 29, g: 29, b: 31, alpha: 1 } })
+    .resize(180, 180, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    })
     .png()
     .toFile(appleIcon);
 
   const png16 = await sharp(iconSource)
-    .resize(16, 16, { fit: "contain", background: { r: 29, g: 29, b: 31, alpha: 1 } })
+    .resize(16, 16, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    })
     .png()
     .toBuffer();
   const png32 = await sharp(iconSource)
-    .resize(32, 32, { fit: "contain", background: { r: 29, g: 29, b: 31, alpha: 1 } })
+    .resize(32, 32, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    })
     .png()
     .toBuffer();
   const ico = await toIco([png16, png32]);

@@ -157,16 +157,13 @@ async function createCheckoutSession({
   };
 
   try {
-    // Faster path: request card+paypal immediately (avoids slow failed dynamic retry).
-    return await stripe.checkout.sessions.create({
-      ...baseParams,
-      payment_method_types: ["card", "paypal"],
-    });
+    // Let Stripe Dashboard decide available methods (card, PayPal, etc.).
+    return await stripe.checkout.sessions.create(baseParams);
   } catch (paypalError) {
     const paypalMessage =
       paypalError instanceof Error ? paypalError.message : String(paypalError);
     console.warn(
-      "[checkout] paypal-unavailable, falling back to card-only",
+      "[checkout] dynamic payment methods unavailable, falling back to card-only",
       paypalMessage,
     );
     return await stripe.checkout.sessions.create({

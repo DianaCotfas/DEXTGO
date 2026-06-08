@@ -488,16 +488,13 @@ export async function sendPrivateItineraryPaymentLink(formData: FormData) {
 
     let session;
     try {
-      // Faster path: request card+paypal immediately.
-      session = await stripe.checkout.sessions.create({
-        ...baseSessionParams,
-        payment_method_types: ["card", "paypal"],
-      });
+      // Let Stripe Dashboard decide available methods (card, PayPal, etc.).
+      session = await stripe.checkout.sessions.create(baseSessionParams);
     } catch (paypalError) {
       const paypalMessage =
         paypalError instanceof Error ? paypalError.message : String(paypalError);
       console.warn(
-        "[private-payment-link] paypal-unavailable, falling back to card-only",
+        "[private-payment-link] dynamic payment methods unavailable, falling back to card-only",
         paypalMessage,
       );
       session = await stripe.checkout.sessions.create({

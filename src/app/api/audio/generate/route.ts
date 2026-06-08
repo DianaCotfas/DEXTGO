@@ -7,11 +7,11 @@ import { isConfigured } from "@/lib/env";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 const Body = z.object({
   stepId: z.string().uuid(),
-  text: z.string().min(1),
+  text: z.string().trim().min(1),
   force: z.boolean().optional().default(false),
 });
 

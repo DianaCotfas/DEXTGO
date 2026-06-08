@@ -7,6 +7,8 @@ const MIME_BY_EXT: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".avif": "image/avif",
 };
 
 function mimeFor(filePath: string) {
@@ -34,10 +36,21 @@ function sniffMime(buffer: Buffer): string | null {
   return null;
 }
 
-function normalizeForPdf(buffer: Buffer, hintedMime?: string | null) {
+async function normalizeForPdf(buffer: Buffer, hintedMime?: string | null) {
   const mime = sniffMime(buffer) ?? hintedMime ?? "application/octet-stream";
   if (mime === "image/png" || mime === "image/jpeg") {
     return { mime, buffer };
+  }
+  if (mime.startsWith("image/")) {
+    try {
+      const sharp = (await import("sharp")).default;
+      const converted = await sharp(buffer, { failOn: "none" })
+        .jpeg({ quality: 88, mozjpeg: true })
+        .toBuffer();
+      return { mime: "image/jpeg", buffer: converted };
+    } catch {
+      return null;
+    }
   }
   return null;
 }
@@ -48,7 +61,7 @@ async function readLocalAsDataUrl(localPath: string) {
   if (!absolute.startsWith(PUBLIC_DIR)) return null;
   try {
     const buffer = await fs.readFile(absolute);
-    const normalized = normalizeForPdf(buffer, mimeFor(absolute));
+    const normalized = await normalizeForPdf(buffer, mimeFor(absolute));
     if (!normalized) return null;
     return `data:${normalized.mime};base64,${normalized.buffer.toString("base64")}`;
   } catch {
@@ -62,7 +75,7 @@ async function fetchRemoteAsDataUrl(url: string) {
     if (!response.ok) return null;
     const contentType = response.headers.get("content-type");
     const buffer = Buffer.from(await response.arrayBuffer());
-    const normalized = normalizeForPdf(buffer, contentType);
+    const normalized = await normalizeForPdf(buffer, contentType);
     if (!normalized) return null;
     return `data:${normalized.mime};base64,${normalized.buffer.toString("base64")}`;
   } catch {

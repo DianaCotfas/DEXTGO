@@ -253,6 +253,24 @@ export function StepAccordion({
                           </div>
                         </details>
                       )}
+                      {step.images && step.images.length > 0 && (
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {step.images.map((src, index) => (
+                            <div
+                              key={`${step.id}-image-${index}`}
+                              className="overflow-hidden rounded-xl border border-black/[0.08] bg-black/[0.02]"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={src}
+                                alt={`${step.title} image ${index + 1}`}
+                                loading="lazy"
+                                className="h-44 w-full object-cover sm:h-48"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

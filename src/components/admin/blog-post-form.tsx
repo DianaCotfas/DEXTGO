@@ -25,11 +25,32 @@ export function BlogPostForm({ initial }: { initial?: Initial }) {
   const bodyDefault = initial?.body
     ? JSON.stringify(initial.body, null, 2)
     : '[{"type":"paragraph","text":"Write your story here..."}]';
+  const [bodyText, setBodyText] = useState(bodyDefault);
+  const [inlineImageUrl, setInlineImageUrl] = useState("");
+
+  function insertImageBlock() {
+    const src = inlineImageUrl.trim();
+    if (!src) return;
+    let blocks: Json = [];
+    try {
+      const parsed = JSON.parse(bodyText);
+      blocks = Array.isArray(parsed) ? (parsed as Json) : [];
+    } catch {
+      blocks = [{ type: "paragraph", text: bodyText.trim() } as Json];
+    }
+    const next = [
+      ...(Array.isArray(blocks) ? blocks : []),
+      { type: "image", src, alt: "", caption: "" } as Json,
+    ];
+    setBodyText(JSON.stringify(next, null, 2));
+    setInlineImageUrl("");
+  }
 
   return (
     <form
       action={(fd) => {
         fd.set("cover_url", coverUrl);
+        fd.set("body", bodyText);
         start(() => saveBlogPost(fd));
       }}
       className="rounded-2xl bg-white border border-black/[0.06] p-6 space-y-5"
@@ -92,8 +113,28 @@ export function BlogPostForm({ initial }: { initial?: Initial }) {
         label="Body (JSON array of blocks: heading | paragraph | quote | list | image)"
         name="body"
         rows={14}
-        defaultValue={bodyDefault}
+        value={bodyText}
+        onChange={(e) => setBodyText(e.target.value)}
       />
+      <div className="rounded-xl border border-black/[0.06] bg-[#fafafa] p-3 space-y-2">
+        <p className="text-xs font-semibold text-foreground/70">
+          Insert image block into article body
+        </p>
+        <ImageUploader
+          value={inlineImageUrl}
+          onChange={setInlineImageUrl}
+          prefix="blog/body"
+          label="Inline image"
+        />
+        <button
+          type="button"
+          onClick={insertImageBlock}
+          disabled={!inlineImageUrl}
+          className="rounded-full border border-black/[0.1] bg-white px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
+        >
+          Add image block to body JSON
+        </button>
+      </div>
       <button
         type="submit"
         disabled={pending}
