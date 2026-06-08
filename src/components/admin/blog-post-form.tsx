@@ -127,12 +127,37 @@ function parseInitialBlocks(value: Json | undefined): EditableBlock[] {
     const parsed = value
       .map((raw) => toEditableBlock(raw))
       .filter((block): block is EditableBlock => !!block);
+    if (parsed.length === 1 && parsed[0].type === "paragraph") {
+      const nested = tryParseNestedBlocksString(parsed[0].text);
+      if (nested && nested.length > 0) return nested;
+    }
     if (parsed.length > 0) return parsed;
   }
   if (typeof value === "string" && value.trim()) {
+    const nested = tryParseNestedBlocksString(value);
+    if (nested && nested.length > 0) return nested;
     return [{ id: makeId(), type: "paragraph", text: value.trim() }];
   }
   return [{ id: makeId(), type: "paragraph", text: "Write your story here..." }];
+}
+
+function tryParseNestedBlocksString(raw: string): EditableBlock[] | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const candidates = [trimmed, trimmed.replace(/\\"/g, '"')];
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (!Array.isArray(parsed)) continue;
+      const blocks = parsed
+        .map((entry) => toEditableBlock(entry))
+        .filter((block): block is EditableBlock => !!block);
+      if (blocks.length > 0) return blocks;
+    } catch {
+      // keep trying fallbacks
+    }
+  }
+  return null;
 }
 
 function toEditableBlock(raw: unknown): EditableBlock | null {
