@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { slugify } from "@/lib/slug";
 
 const CountrySchema = z.object({
-  slug: z.string().regex(/^[a-z0-9-]+$/),
+  slug: z.string().min(1),
   name: z.string().min(1),
   tagline: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
@@ -23,7 +24,12 @@ export async function saveCountry(formData: FormData) {
       "Admin write access is not configured. Set SUPABASE_SERVICE_ROLE_KEY on Vercel.",
     );
   }
-  const parsed = CountrySchema.parse(Object.fromEntries(formData));
+  const raw = CountrySchema.parse(Object.fromEntries(formData));
+  const parsed = {
+    ...raw,
+    slug: slugify(raw.slug || raw.name),
+  };
+  if (!parsed.slug) throw new Error("Country slug is required.");
   const { error } = await supabase.from("countries").upsert(parsed);
   if (error) throw error;
   revalidatePath("/admin/countries");
@@ -33,7 +39,7 @@ export async function saveCountry(formData: FormData) {
 
 const RegionSchema = z.object({
   country_slug: z.string(),
-  slug: z.string().regex(/^[a-z0-9-]+$/),
+  slug: z.string().min(1),
   name: z.string().min(1),
   tagline: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
@@ -49,7 +55,12 @@ export async function saveRegion(formData: FormData) {
       "Admin write access is not configured. Set SUPABASE_SERVICE_ROLE_KEY on Vercel.",
     );
   }
-  const parsed = RegionSchema.parse(Object.fromEntries(formData));
+  const raw = RegionSchema.parse(Object.fromEntries(formData));
+  const parsed = {
+    ...raw,
+    slug: slugify(raw.slug || raw.name),
+  };
+  if (!parsed.slug) throw new Error("Region slug is required.");
   const { error } = await supabase.from("regions").upsert(parsed);
   if (error) throw error;
   revalidatePath(`/admin/countries/${parsed.country_slug}`);

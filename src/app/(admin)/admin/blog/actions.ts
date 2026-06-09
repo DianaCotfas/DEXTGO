@@ -6,9 +6,10 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
+import { slugify } from "@/lib/slug";
 
 const PostSchema = z.object({
-  slug: z.string().regex(/^[a-z0-9-]+$/),
+  slug: z.string().min(1),
   title: z.string().min(1),
   excerpt: z.string().optional().nullable(),
   cover_url: z.string().trim().optional().or(z.literal("")).nullable(),
@@ -29,7 +30,12 @@ export async function saveBlogPost(formData: FormData) {
     );
   }
   const raw = Object.fromEntries(formData);
-  const parsed = PostSchema.parse(raw);
+  const post = PostSchema.parse(raw);
+  const parsed = {
+    ...post,
+    slug: slugify(post.slug || post.title),
+  };
+  if (!parsed.slug) throw new Error("Blog slug is required.");
 
   let body: Json = [];
   if (parsed.body) {

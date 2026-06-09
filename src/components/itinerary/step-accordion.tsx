@@ -35,6 +35,7 @@ export function StepAccordion({
   onSelectStep,
   locked,
 }: StepAccordionProps) {
+  const autoExpandSections = !locked;
   // Group steps by day preserving insertion order
   const dayOrder: number[] = [];
   const byDay: Record<number, ItineraryStep[]> = {};
@@ -170,7 +171,10 @@ export function StepAccordion({
                       )}
 
                       {(step.infoData || step.address || step.googleMapsUrl || step.officialUrl || (step.extraLinks && step.extraLinks.length > 0)) && (
-                        <details className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]">
+                        <details
+                          open={autoExpandSections}
+                          className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]"
+                        >
                           <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#16A34A]">
                             Info Data
                           </summary>
@@ -229,7 +233,10 @@ export function StepAccordion({
                       )}
 
                       {(stepDescription || stepDescriptionKids) && (
-                        <details className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]">
+                        <details
+                          open={autoExpandSections}
+                          className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]"
+                        >
                           <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#0A84FF]">
                             Description
                           </summary>
@@ -257,7 +264,10 @@ export function StepAccordion({
                         </details>
                       )}
                       {step.expertTips && (
-                        <details className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]">
+                        <details
+                          open={autoExpandSections}
+                          className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]"
+                        >
                           <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#16A34A]">
                             Expert Tips
                           </summary>

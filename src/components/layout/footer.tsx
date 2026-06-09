@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Camera } from "lucide-react";
 import { SITE_CONFIG, FOOTER_LINKS } from "@/lib/constants";
 import { mediaUrl } from "@/lib/media";
+import { IubendaPreferencesLink } from "@/components/shared/iubenda-preferences-link";
 
 type FooterLink = {
   label: string;
@@ -105,12 +106,11 @@ export function Footer() {
                 </li>
               ))}
               <li>
-                <a
-                  href="#"
+                <IubendaPreferencesLink
                   className="iubenda-cs-preferences-link text-sm text-white/35 hover:text-white/80 transition-colors duration-300"
                 >
                   Manage Cookie Preferences
-                </a>
+                </IubendaPreferencesLink>
               </li>
             </ul>
           </div>

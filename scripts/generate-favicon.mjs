@@ -50,7 +50,14 @@ async function loadTransparentIconSource() {
     const a = data[i + 3];
     const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     const alphaFactor = Math.max(0, Math.min(1, (225 - luminance) / 85));
-    data[i + 3] = Math.round(a * alphaFactor);
+    const nextAlpha = Math.round(a * alphaFactor);
+    data[i + 3] = nextAlpha;
+    if (nextAlpha > 0) {
+      // Keep logo transparent but raise contrast for dark browser tabs.
+      data[i] = 112;
+      data[i + 1] = 126;
+      data[i + 2] = 142;
+    }
   }
 
   return sharp(data, {
@@ -60,6 +67,7 @@ async function loadTransparentIconSource() {
       channels: info.channels,
     },
   })
+    .trim({ threshold: 8 })
     .png()
     .toBuffer();
 }
