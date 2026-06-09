@@ -90,6 +90,9 @@ export function StepAccordion({
           tipCounterInStep += 1;
           itemNumber = tipCounterInStep;
         }
+        const stepIntro = step.body?.trim() ?? "";
+        const stepDescription = step.descriptionAndAudio?.trim() ?? "";
+        const stepDescriptionKids = step.descriptionAndAudioKids?.trim() ?? "";
 
         return (
           <li
@@ -149,6 +152,20 @@ export function StepAccordion({
                             durationSeconds={step.audioDurationSeconds}
                             variant="slim"
                           />
+                        </div>
+                      )}
+                      {stepIntro && (
+                        <div className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]">
+                          <div className="px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#0A84FF]">
+                            Step Intro
+                          </div>
+                          <div className="border-t border-black/[0.06] px-3 pb-3 pt-2">
+                            <div className="prose prose-sm max-w-none text-foreground/75">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {stepIntro}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
                         </div>
                       )}
 
@@ -211,27 +228,27 @@ export function StepAccordion({
                         </details>
                       )}
 
-                      {(step.descriptionAndAudio || step.body || step.descriptionAndAudioKids) && (
+                      {(stepDescription || stepDescriptionKids) && (
                         <details className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]">
                           <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#0A84FF]">
                             Description
                           </summary>
                           <div className="border-t border-black/[0.06] px-3 pb-3 pt-2 space-y-3">
-                            {(step.descriptionAndAudio || step.body) && (
+                            {stepDescription && (
                               <div className="prose prose-sm max-w-none text-foreground/75">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                  {step.descriptionAndAudio ?? step.body ?? ""}
+                                  {stepDescription}
                                 </ReactMarkdown>
                               </div>
                             )}
-                            {step.descriptionAndAudioKids && (
+                            {stepDescriptionKids && (
                               <>
                                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-foreground/60">
                                   Audio and Description (For Kids)
                                 </p>
                                 <div className="prose prose-sm max-w-none text-foreground/75">
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {step.descriptionAndAudioKids}
+                                    {stepDescriptionKids}
                                   </ReactMarkdown>
                                 </div>
                               </>

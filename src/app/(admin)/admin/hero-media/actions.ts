@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const Schema = z.object({
   page_slug: z.string().min(1),
@@ -13,10 +13,15 @@ const Schema = z.object({
 
 export async function saveHeroMedia(formData: FormData) {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) throw new Error("Supabase not configured");
+  const supabase = await createSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error(
+      "Admin write access is not configured. Set SUPABASE_SERVICE_ROLE_KEY on Vercel.",
+    );
+  }
   const parsed = Schema.parse(Object.fromEntries(formData));
-  await supabase.from("hero_media").upsert(parsed);
+  const { error } = await supabase.from("hero_media").upsert(parsed);
+  if (error) throw error;
   revalidatePath("/admin/hero-media");
   const pathBySlug: Record<string, string> = {
     home: "/",

@@ -550,7 +550,7 @@ export async function sendPasswordResetEmail(params: {
         Access your account
       </h1>
       <p style="margin:0 0 18px 0;font-size:15px;line-height:1.7;color:#334155;">
-        We received a request to access your DEXTGO account. Use the secure button below to continue with Magic Link sign-in.
+        Click the link below to log directly into your account. Once inside your dashboard, you can safely update your password from your profile settings.
       </p>
       <p style="margin:0 0 20px 0;">
         <a href="${params.resetUrl}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:999px;">Access account</a>
@@ -558,9 +558,6 @@ export async function sendPasswordResetEmail(params: {
       <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">
         If the button does not open, copy and paste this link into your browser:<br />
         <span style="word-break:break-all;color:#334155;">${safeResetUrl}</span>
-      </p>
-      <p style="margin:12px 0 0 0;font-size:13px;line-height:1.6;color:#64748b;">
-        Once you are inside your dashboard, you can change your password from account settings.
       </p>
       <p style="margin:12px 0 0 0;font-size:12px;line-height:1.6;color:#94a3b8;">
         If you did not request this, you can safely ignore this email.
@@ -571,10 +568,11 @@ export async function sendPasswordResetEmail(params: {
   const text = [
     "Access your DEXTGO account",
     "",
-    "Use this secure Magic Link to access your account:",
-    params.resetUrl,
+    "Click the link below to log directly into your account.",
+    "Once inside your dashboard, you can safely update your password from your profile settings.",
     "",
-    "After signing in, you can change your password from dashboard settings.",
+    "Direct login link:",
+    params.resetUrl,
     "",
     "If you did not request this, you can ignore this email.",
   ].join("\n");

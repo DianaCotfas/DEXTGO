@@ -6,15 +6,66 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.resolve(__dirname, "..");
-const src = path.join(webRoot, "public", "brand", "dextgo-wordmark.png");
+const logoSource = path.join(webRoot, "public", "brand", "dextgo-logo-source.png");
+const fallbackSource = path.join(webRoot, "public", "brand", "dextgo-wordmark.png");
 
-async function run() {
-  const meta = await sharp(src).metadata();
-  const cropWidth = Math.min(meta.width ?? 256, Math.round((meta.height ?? 256) * 1.1));
-  const iconSource = await sharp(src)
-    .extract({ left: 0, top: 0, width: cropWidth, height: meta.height ?? 256 })
+async function resolveSourcePath() {
+  try {
+    await fs.access(logoSource);
+    return logoSource;
+  } catch {
+    return fallbackSource;
+  }
+}
+
+async function loadTransparentIconSource() {
+  const sourcePath = await resolveSourcePath();
+  const sourceMeta = await sharp(sourcePath).metadata();
+  let pipeline = sharp(sourcePath);
+
+  // Fallback wordmark is wide: crop a square-ish mark from the left.
+  if (sourcePath === fallbackSource) {
+    const cropWidth = Math.min(
+      sourceMeta.width ?? 256,
+      Math.round((sourceMeta.height ?? 256) * 1.1),
+    );
+    pipeline = pipeline.extract({
+      left: 0,
+      top: 0,
+      width: cropWidth,
+      height: sourceMeta.height ?? 256,
+    });
+  }
+
+  const { data, info } = await pipeline
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  // Remove light backgrounds while keeping dark logo strokes opaque.
+  for (let i = 0; i < data.length; i += info.channels) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const alphaFactor = Math.max(0, Math.min(1, (225 - luminance) / 85));
+    data[i + 3] = Math.round(a * alphaFactor);
+  }
+
+  return sharp(data, {
+    raw: {
+      width: info.width,
+      height: info.height,
+      channels: info.channels,
+    },
+  })
     .png()
     .toBuffer();
+}
+
+async function run() {
+  const iconSource = await loadTransparentIconSource();
 
   const brandIcon = path.join(webRoot, "public", "brand", "dextgo-icon.png");
   const appIcon = path.join(webRoot, "src", "app", "icon.png");

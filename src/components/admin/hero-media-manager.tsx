@@ -4,7 +4,12 @@ import { useState, useTransition } from "react";
 import { ImageUploader } from "@/components/admin/image-uploader";
 import { saveHeroMedia } from "@/app/(admin)/admin/hero-media/actions";
 
-type Item = { page_slug: string; image_url: string; video_id: string };
+type Item = {
+  page_slug: string;
+  image_url: string;
+  video_id: string;
+  fallback_video?: string;
+};
 
 export function HeroMediaManager({ items }: { items: Item[] }) {
   return (
@@ -47,6 +52,16 @@ function HeroRow({ item }: { item: Item }) {
           placeholder="Stream UID, .m3u8 URL, or MP4 URL"
           className="mt-1.5 w-full rounded-xl bg-white border border-black/[0.08] px-3.5 py-2 text-sm"
         />
+        <p className="mt-1 text-[11px] text-foreground/60">
+          Paste a Cloudflare Stream UID (for example:{" "}
+          <code>8f2a7b1c9d0e4f11</code>) or a full video URL (MP4 / HLS). If
+          this is empty, the website keeps using the current fallback video.
+        </p>
+        {item.fallback_video && (
+          <p className="mt-1 text-[11px] text-foreground/50 break-all">
+            Current fallback: <code>{item.fallback_video}</code>
+          </p>
+        )}
       </label>
       <button
         type="submit"

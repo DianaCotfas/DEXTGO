@@ -4,10 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import {
-  createSupabaseAdminClient,
-  createSupabaseServerClient,
-} from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 
 const PostSchema = z.object({
@@ -25,9 +22,12 @@ const PostSchema = z.object({
 
 export async function saveBlogPost(formData: FormData) {
   await requireAdmin();
-  const supabase =
-    (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
-  if (!supabase) throw new Error("Supabase not configured");
+  const supabase = await createSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error(
+      "Admin write access is not configured. Set SUPABASE_SERVICE_ROLE_KEY on Vercel.",
+    );
+  }
   const raw = Object.fromEntries(formData);
   const parsed = PostSchema.parse(raw);
 
@@ -54,7 +54,8 @@ export async function saveBlogPost(formData: FormData) {
     published_at: parsed.status === "published" ? new Date().toISOString() : null,
   };
 
-  await supabase.from("blog_posts").upsert(payload);
+  const { error } = await supabase.from("blog_posts").upsert(payload);
+  if (error) throw error;
   revalidatePath("/admin/blog");
   revalidatePath(`/blog/${parsed.slug}`);
   redirect(`/admin/blog/${parsed.slug}`);

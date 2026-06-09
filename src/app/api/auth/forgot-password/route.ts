@@ -12,7 +12,7 @@ const schema = z.object({
   email: z.string().email(),
 });
 
-function resetRedirectUrl() {
+function loginRedirectUrl() {
   return `${getPublicSiteUrl()}/api/auth/reset-password`;
 }
 
@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const redirectTo = resetRedirectUrl();
+  const redirectTo = loginRedirectUrl();
 
   // Always return generic success to avoid account enumeration.
   try {
     const admin = await createSupabaseAdminClient();
     if (admin && isConfigured("resend")) {
       const result = await admin.auth.admin.generateLink({
-        type: "recovery",
+        type: "magiclink",
         email,
         options: { redirectTo },
       });
@@ -56,7 +56,10 @@ export async function POST(request: NextRequest) {
     } else {
       const supabase = await createSupabaseServerClient();
       if (supabase) {
-        await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+        await supabase.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: redirectTo },
+        });
       }
     }
   } catch {

@@ -109,7 +109,7 @@ export function Footer() {
                   href="#"
                   className="iubenda-cs-preferences-link text-sm text-white/35 hover:text-white/80 transition-colors duration-300"
                 >
-                  Cookie Preferences
+                  Manage Cookie Preferences
                 </a>
               </li>
             </ul>

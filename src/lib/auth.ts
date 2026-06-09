@@ -10,6 +10,10 @@ export interface SessionUser extends User {
   is_admin?: boolean;
 }
 
+// Bootstrap owner admins (safe fallback even if ADMIN_EMAILS is misconfigured on deploy).
+// Keep this list intentionally short.
+const BOOTSTRAP_OWNER_EMAILS = new Set<string>(["imabug0900@gmail.com"]);
+
 function normalizeEmail(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
@@ -61,8 +65,14 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const allowlistMatch = adminEmailAllowlist().includes(
     (user.email ?? "").toLowerCase(),
   );
+  const bootstrapOwnerMatch = BOOTSTRAP_OWNER_EMAILS.has(
+    (user.email ?? "").toLowerCase(),
+  );
 
-  return { ...user, is_admin: !!profile?.is_admin || allowlistMatch };
+  return {
+    ...user,
+    is_admin: !!profile?.is_admin || allowlistMatch || bootstrapOwnerMatch,
+  };
 }
 
 export async function requireUser(redirectTo = "/login"): Promise<SessionUser> {

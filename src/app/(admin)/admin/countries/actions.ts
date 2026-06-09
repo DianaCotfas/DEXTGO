@@ -4,10 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import {
-  createSupabaseAdminClient,
-  createSupabaseServerClient,
-} from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const CountrySchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/),
@@ -20,9 +17,12 @@ const CountrySchema = z.object({
 
 export async function saveCountry(formData: FormData) {
   await requireAdmin();
-  const supabase =
-    (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
-  if (!supabase) throw new Error("Supabase not configured");
+  const supabase = await createSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error(
+      "Admin write access is not configured. Set SUPABASE_SERVICE_ROLE_KEY on Vercel.",
+    );
+  }
   const parsed = CountrySchema.parse(Object.fromEntries(formData));
   const { error } = await supabase.from("countries").upsert(parsed);
   if (error) throw error;
@@ -43,9 +43,12 @@ const RegionSchema = z.object({
 
 export async function saveRegion(formData: FormData) {
   await requireAdmin();
-  const supabase =
-    (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
-  if (!supabase) throw new Error("Supabase not configured");
+  const supabase = await createSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error(
+      "Admin write access is not configured. Set SUPABASE_SERVICE_ROLE_KEY on Vercel.",
+    );
+  }
   const parsed = RegionSchema.parse(Object.fromEntries(formData));
   const { error } = await supabase.from("regions").upsert(parsed);
   if (error) throw error;
@@ -57,9 +60,12 @@ export async function deleteRegion(formData: FormData) {
   const country = formData.get("country_slug")?.toString();
   const slug = formData.get("slug")?.toString();
   if (!country || !slug) return;
-  const supabase =
-    (await createSupabaseAdminClient()) ?? (await createSupabaseServerClient());
-  if (!supabase) throw new Error("Supabase not configured");
+  const supabase = await createSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error(
+      "Admin write access is not configured. Set SUPABASE_SERVICE_ROLE_KEY on Vercel.",
+    );
+  }
   const { error } = await supabase
     .from("regions")
     .delete()
