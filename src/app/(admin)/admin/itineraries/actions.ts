@@ -214,6 +214,25 @@ async function regenerateItineraryPdfStrict(
   return regenerateItineraryPdf(itineraryId, supabase);
 }
 
+async function revalidateItineraryPublicPath(
+  supabase: SupabaseClient<Database>,
+  itineraryId: string,
+) {
+  // Bust generic listing/dashboard caches that may render stale itinerary snippets.
+  revalidatePath("/itineraries");
+  revalidatePath("/itineraries/[slug]", "page");
+  revalidatePath("/account/itineraries");
+
+  const { data } = await supabase
+    .from("itineraries")
+    .select("slug")
+    .eq("id", itineraryId)
+    .maybeSingle();
+  if (data?.slug) {
+    revalidatePath(`/itineraries/${data.slug}`);
+  }
+}
+
 export async function saveItinerary(formData: FormData) {
   const raw = Object.fromEntries(formData);
   try {
@@ -739,8 +758,8 @@ export async function saveStep(formData: FormData) {
         description_long: parsed.description_long ?? null,
         description_kids: parsed.description_kids ?? null,
         expert_tips: parsed.expert_tips ?? null,
-        image_urls:
-          parsed.image_urls.length > 0 ? parsed.image_urls : (existing.image_urls ?? []),
+        // Respect explicit removals from UI: empty array means delete all step images.
+        image_urls: parsed.image_urls,
         extra_links: parsed.extra_links.length > 0 ? parsed.extra_links : [],
       };
       const { error } = await supabase
@@ -751,6 +770,7 @@ export async function saveStep(formData: FormData) {
       await resequenceDaySteps(supabase, parsed.itinerary_id, parsed.day ?? existing.day ?? 1);
       await regenerateItineraryPdfCached(parsed.itinerary_id, supabase);
       revalidatePath(`/admin/itineraries/${parsed.itinerary_id}`);
+      await revalidateItineraryPublicPath(supabase, parsed.itinerary_id);
       return { stepId: parsed.id };
     } else {
       const payload = {
@@ -784,6 +804,7 @@ export async function saveStep(formData: FormData) {
       await resequenceDaySteps(supabase, parsed.itinerary_id, parsed.day ?? 1);
       await regenerateItineraryPdfCached(parsed.itinerary_id, supabase);
       revalidatePath(`/admin/itineraries/${parsed.itinerary_id}`);
+      await revalidateItineraryPublicPath(supabase, parsed.itinerary_id);
       return { stepId: inserted.id };
     }
   } catch (err) {
@@ -827,6 +848,7 @@ export async function deleteStep(formData: FormData) {
   if (itineraryId) {
     await resequenceDaySteps(supabase, itineraryId, rowBeforeDelete?.day ?? 1);
     await regenerateItineraryPdfCached(itineraryId, supabase);
+    await revalidateItineraryPublicPath(supabase, itineraryId);
   }
   if (itineraryId) revalidatePath(`/admin/itineraries/${itineraryId}`);
 }
