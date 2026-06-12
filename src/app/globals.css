@@ -289,11 +289,20 @@ html {
 /* Diana requested no floating Iubenda button on pages. */
 .iubenda-cs-btn-floating,
 #iubenda-cs-preferences-link,
+#iubenda-cs-floating-btn,
 [data-iub-cs-floating-preferences-button],
-body > [data-iub-cs-preferences-button] {
+[data-iub-cs-preferences-button],
+[class*="iubenda-cs-floating"],
+[class*="iubenda-cs-preferences-link"],
+body > [data-iub-cs-preferences-button],
+body > [data-iub-cs-floating-preferences-button] {
   display: none !important;
+  visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
 #iubenda-cs-banner {

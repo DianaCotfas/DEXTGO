@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Trash2 } from "lucide-react";
 import { ImageUploader } from "@/components/admin/image-uploader";
-import { saveCountry } from "@/app/(admin)/admin/countries/actions";
+import { deleteCountry, saveCountry } from "@/app/(admin)/admin/countries/actions";
 
 type Initial = {
   slug?: string;
@@ -22,21 +23,29 @@ export function CountryForm({ initial }: { initial?: Initial }) {
     <form
       action={(fd) => {
         fd.set("cover_url", coverUrl);
+        if (isEdit && initial?.slug) {
+          fd.set("original_slug", initial.slug);
+        }
         start(() => saveCountry(fd));
       }}
       className="rounded-2xl bg-white border border-black/[0.06] p-6 space-y-5"
     >
+      {isEdit && initial?.slug && (
+        <input type="hidden" name="original_slug" value={initial.slug} />
+      )}
       <div className="grid sm:grid-cols-2 gap-4">
         <Field
           label="Slug"
           name="slug"
           defaultValue={initial?.slug ?? ""}
           required
-          readOnly={isEdit}
-          pattern="[a-z0-9-]+"
+          placeholder="italy"
         />
         <Field label="Name" name="name" defaultValue={initial?.name ?? ""} required />
       </div>
+      <p className="text-[11px] text-foreground/55 -mt-2">
+        Slugs are auto-formatted (lowercase, hyphens). You can edit the slug after creation.
+      </p>
       <Field label="Tagline" name="tagline" defaultValue={initial?.tagline ?? ""} />
       <FieldArea
         label="Description"
@@ -56,13 +65,37 @@ export function CountryForm({ initial }: { initial?: Initial }) {
         type="number"
         defaultValue={(initial?.position ?? 0).toString()}
       />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-full bg-[#1D1D1F] text-white text-sm font-semibold px-5 py-2.5 disabled:opacity-60"
-      >
-        {pending ? "Saving…" : isEdit ? "Save changes" : "Create country"}
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-full bg-[#1D1D1F] text-white text-sm font-semibold px-5 py-2.5 disabled:opacity-60"
+        >
+          {pending ? "Saving…" : isEdit ? "Save changes" : "Create country"}
+        </button>
+        {isEdit && initial?.slug && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  `Delete "${initial.name ?? initial.slug}"? Regions linked to this country will also be removed.`,
+                )
+              ) {
+                return;
+              }
+              const fd = new FormData();
+              fd.set("slug", initial.slug!);
+              start(() => deleteCountry(fd));
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-red-200 text-red-600 text-sm font-semibold px-5 py-2.5 disabled:opacity-60 hover:bg-red-50"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete country
+          </button>
+        )}
+      </div>
     </form>
   );
 }

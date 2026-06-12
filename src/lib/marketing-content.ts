@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { BlogPost, Country } from "@/types";
+import type { BlogPost, Country, Region } from "@/types";
 import { blogPosts as staticBlogPosts } from "@/data/blog-posts";
 import { countries as staticCountries } from "@/data/countries";
 import { featuredItineraries } from "@/data/itineraries";
@@ -288,6 +288,80 @@ export async function loadCountryCards(): Promise<MarketingCountryCard[]> {
   }));
   const staticOnly = staticCards.filter((c) => !dbSlugs.has(c.slug));
   return [...dbCards, ...staticOnly];
+}
+
+function mapDbCountryRow(
+  row: {
+    slug: string;
+    name: string;
+    tagline: string | null;
+    cover_url: string | null;
+  },
+  regions: Array<{
+    slug: string;
+    name: string;
+    tagline: string | null;
+    description: string | null;
+    cover_url: string | null;
+  }> = [],
+): Country {
+  const fallback = fallbackCountryBySlug.get(row.slug);
+  return {
+    slug: row.slug,
+    name: row.name,
+    tagline: row.tagline ?? fallback?.tagline ?? "",
+    image: row.cover_url
+      ? resolveR2Url(row.cover_url)
+      : fallback?.image ?? "",
+    regions: regions.map((region) => ({
+      slug: region.slug,
+      name: region.name,
+      tagline: region.tagline ?? "",
+      description: region.description ?? undefined,
+      image: region.cover_url
+        ? resolveR2Url(region.cover_url)
+        : fallback?.regions?.find((r) => r.slug === region.slug)?.image ?? "",
+    })),
+  };
+}
+
+export async function loadCountryDetail(slug: string): Promise<Country | null> {
+  const fallback = staticCountries.find((c) => c.slug === slug) ?? null;
+  const supabase = await marketingClient();
+  if (!supabase) return fallback;
+
+  const { data: row } = await supabase
+    .from("countries")
+    .select("slug, name, tagline, description, cover_url, position")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!row) return fallback;
+
+  const { data: regionRows } = await supabase
+    .from("regions")
+    .select("slug, name, tagline, description, cover_url, position")
+    .eq("country_slug", slug)
+    .order("position", { ascending: true });
+
+  const mapped = mapDbCountryRow(row, regionRows ?? []);
+  if (!mapped.regions?.length && fallback?.regions?.length) {
+    mapped.regions = fallback.regions;
+  }
+  if (!mapped.image && fallback?.image) {
+    mapped.image = fallback.image;
+  }
+  return mapped;
+}
+
+export async function loadRegionDetail(
+  countrySlug: string,
+  regionSlug: string,
+): Promise<{ country: Country | null; region: Region | null }> {
+  const country = await loadCountryDetail(countrySlug);
+  if (!country) return { country: null, region: null };
+  const region = country.regions?.find((r) => r.slug === regionSlug) ?? null;
+  return { country, region };
 }
 
 export async function loadGalleryCards(limit?: number): Promise<MarketingGalleryCard[]> {

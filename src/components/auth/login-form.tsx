@@ -44,14 +44,16 @@ export function LoginForm() {
           );
           return;
         }
-        const { error: err } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo: `${siteUrl}/api/auth/callback?next=${encodeURIComponent(next)}`,
-          },
+        const response = await fetch("/api/auth/magic-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, next }),
         });
-        if (err) {
-          setError(err.message);
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          setError(payload?.error ?? "Could not send sign-in link. Please try again.");
           return;
         }
         setMessage("Check your inbox for a sign-in link.");

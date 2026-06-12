@@ -80,6 +80,9 @@ function RegionRow({
       action={(fd) => {
         fd.set("cover_url", coverUrl);
         fd.set("country_slug", region.country_slug);
+        if (region.slug) {
+          fd.set("original_slug", region.slug);
+        }
         start(() => saveRegion(fd));
       }}
       className="rounded-2xl bg-white border border-black/[0.06] p-4 space-y-3"

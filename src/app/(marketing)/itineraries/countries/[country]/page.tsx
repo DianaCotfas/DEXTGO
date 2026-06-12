@@ -5,14 +5,16 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Clock, MapPin } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { countries, getCountry } from "@/data/countries";
+import { countries } from "@/data/countries";
 import {
+  loadCountryDetail,
   loadPublishedItineraryCardsByCountry,
   type MarketingItineraryCard,
 } from "@/lib/marketing-content";
 import { SaveTripButton } from "@/components/itinerary/save-trip-button";
 
 export const revalidate = 300;
+export const dynamicParams = true;
 
 interface Params {
   params: Promise<{ country: string }>;
@@ -26,7 +28,7 @@ export async function generateMetadata({
   params,
 }: Params): Promise<Metadata> {
   const { country: slug } = await params;
-  const country = getCountry(slug);
+  const country = await loadCountryDetail(slug);
   if (!country) return { title: "Country not found" };
   return {
     title: `${country.name} Itineraries`,
@@ -36,7 +38,7 @@ export async function generateMetadata({
 
 export default async function CountryPage({ params }: Params) {
   const { country: slug } = await params;
-  const country = getCountry(slug);
+  const country = await loadCountryDetail(slug);
   if (!country) notFound();
 
   const itineraries = await loadPublishedItineraryCardsByCountry(country.slug);
@@ -66,7 +68,7 @@ export default async function CountryPage({ params }: Params) {
                   className="group block relative aspect-[4/3] rounded-2xl overflow-hidden card-shadow hover:card-shadow-hover transition-shadow duration-500"
                 >
                   <Image
-                    src={region.image}
+                    src={region.image || country.image}
                     alt={region.name}
                     fill
                     className="object-cover transition-all duration-[800ms] ease-out group-hover:scale-110"

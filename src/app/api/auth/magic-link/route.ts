@@ -8,10 +8,19 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
   email: z.string().email(),
+  next: z.string().optional(),
 });
+
+function normalizeNext(next: string | undefined) {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/account";
+  if (/^https?:\/\//i.test(next)) return "/account";
+  return next;
+}
 
 export async function POST(request: NextRequest) {
   let email = "";
+  let next = "/account";
+
   try {
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) {
@@ -21,6 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
     email = parsed.data.email.trim().toLowerCase();
+    next = normalizeNext(parsed.data.next);
   } catch {
     return NextResponse.json(
       { ok: false, error: "Invalid request payload." },
@@ -30,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   // Always return generic success to avoid account enumeration.
   try {
-    const linkResult = await createDirectMagicLink(email, "/account/settings?reset=1");
+    const linkResult = await createDirectMagicLink(email, next);
     if ("url" in linkResult && isConfigured("resend")) {
       await sendPasswordResetEmail({
         to: email,
@@ -42,7 +52,7 @@ export async function POST(request: NextRequest) {
         await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: `${getPublicSiteUrl()}/auth/confirm?next=${encodeURIComponent("/account/settings?reset=1")}`,
+            emailRedirectTo: `${getPublicSiteUrl()}/auth/confirm?next=${encodeURIComponent(next)}`,
           },
         });
       }

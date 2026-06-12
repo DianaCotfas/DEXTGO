@@ -1,6 +1,7 @@
 "use client";
 
 import Script from "next/script";
+import { HideIubendaFloatingBadge } from "@/components/shared/hide-iubenda-floating-badge";
 import { IUBENDA_CONFIG, hasIubendaBanner } from "@/lib/iubenda";
 
 /**
@@ -47,6 +48,7 @@ export function IubendaBanner() {
 
   return (
     <>
+      <HideIubendaFloatingBadge />
       <Script
         id="iubenda-cs-config"
         strategy="afterInteractive"

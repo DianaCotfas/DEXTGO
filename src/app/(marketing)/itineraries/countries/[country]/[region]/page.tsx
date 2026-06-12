@@ -5,14 +5,16 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Clock, MapPin } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { countries, getRegion } from "@/data/countries";
+import { countries } from "@/data/countries";
 import {
   loadPublishedItineraryCardsByRegion,
+  loadRegionDetail,
   type MarketingItineraryCard,
 } from "@/lib/marketing-content";
 import { SaveTripButton } from "@/components/itinerary/save-trip-button";
 
 export const revalidate = 300;
+export const dynamicParams = true;
 
 interface Params {
   params: Promise<{ country: string; region: string }>;
@@ -32,7 +34,7 @@ export async function generateMetadata({
   params,
 }: Params): Promise<Metadata> {
   const { country: countrySlug, region: regionSlug } = await params;
-  const { country, region } = getRegion(countrySlug, regionSlug);
+  const { country, region } = await loadRegionDetail(countrySlug, regionSlug);
   if (!country || !region) return { title: "Region not found" };
   return {
     title: `${region.name}, ${country.name} Itineraries`,
@@ -42,7 +44,7 @@ export async function generateMetadata({
 
 export default async function RegionPage({ params }: Params) {
   const { country: countrySlug, region: regionSlug } = await params;
-  const { country, region } = getRegion(countrySlug, regionSlug);
+  const { country, region } = await loadRegionDetail(countrySlug, regionSlug);
   if (!country || !region) notFound();
 
   const itineraries = await loadPublishedItineraryCardsByRegion(country.slug, region.slug);
@@ -52,7 +54,7 @@ export default async function RegionPage({ params }: Params) {
       <PageHero
         title={region.name}
         subtitle={region.tagline}
-        backgroundImage={region.image}
+        backgroundImage={region.image || country.image}
       />
 
       <section className="section-padding pt-6">
