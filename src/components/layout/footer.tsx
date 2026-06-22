@@ -106,9 +106,7 @@ export function Footer() {
                 </li>
               ))}
               <li>
-                <IubendaPreferencesLink
-                  className="iubenda-cs-preferences-link text-sm text-white/35 hover:text-white/80 transition-colors duration-300"
-                >
+                <IubendaPreferencesLink className="text-sm text-white/35 hover:text-white/80 transition-colors duration-300">
                   Manage Cookie Preferences
                 </IubendaPreferencesLink>
               </li>

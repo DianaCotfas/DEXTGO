@@ -149,7 +149,7 @@ export default async function EditItineraryPage({ params, searchParams }: PagePr
           <p className="mt-2">
             Use when the itinerary is fully finished and payment is already confirmed
             (Stripe webhook, bank transfer, cash, etc.). This marks the itinerary as completed
-            private delivery and sends the confirmation email.
+            private delivery and sends the &quot;your itinerary is ready&quot; email.
           </p>
           <p className="mt-1">No customer charge is created from this action.</p>
           <form action={grantPrivateItineraryAccess} className="mt-3 flex flex-wrap items-end gap-3">

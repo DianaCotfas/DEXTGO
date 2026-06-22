@@ -171,60 +171,51 @@ export async function sendOrderConfirmationEmail(params: {
 }
 
 /**
- * Delivery email template reserved for when Diana manually marks an itinerary as complete.
- * Not auto-triggered at payment time.
+ * Delivery email for when Diana manually grants access to a completed custom itinerary.
  */
 export async function sendItineraryReadyEmail(params: {
   to: string;
   itineraryTitle: string;
   itinerarySlug: string;
-  amountCents: number;
-  currency: string;
+  amountCents?: number;
+  currency?: string;
 }) {
   const link = `${getPublicSiteUrl()}/account/itineraries`;
-  const receipt = formatPrice(params.amountCents, params.currency);
   const safeTitle = escapeHtml(params.itineraryTitle);
   const html = wrap(
-    "Your DEXTGO itinerary is ready",
-    `Your itinerary ${params.itineraryTitle} is ready in your dashboard.`,
+    "Your custom DEXTGO itinerary is ready",
+    `Your custom itinerary ${params.itineraryTitle} is ready in your dashboard.`,
     `
       <p style="margin:0 0 10px 0;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;">Itinerary delivery</p>
       <h1 style="margin:0 0 14px 0;font-size:28px;line-height:1.2;font-weight:700;color:#0f172a;">
-        Your itinerary is ready.
+        Your custom DEXTGO itinerary is ready!
       </h1>
       <p style="margin:0 0 18px 0;font-size:15px;line-height:1.7;color:#334155;">
-        Great news. <strong>${safeTitle}</strong> is now ready with full map navigation, audio guides, and downloadable PDF access.
+        <strong>${safeTitle}</strong> is ready for you. Please log in to your account dashboard to view and download your trip details.
       </p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;">
-        <tr><td style="padding:14px 16px;">
-          <p style="margin:0 0 6px 0;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Order details</p>
-          <p style="margin:0;font-size:14px;color:#0f172a;"><strong>Itinerary:</strong> ${safeTitle}</p>
-          <p style="margin:4px 0 0 0;font-size:14px;color:#0f172a;"><strong>Receipt:</strong> ${receipt}</p>
-        </td></tr>
-      </table>
       <p style="margin:0 0 22px 0;">
-        <a href="${link}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:999px;">Open my itineraries</a>
+        <a href="${link}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:999px;">Go to my dashboard</a>
       </p>
       <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">
-        Need help with access or delivery? Reply to this email and our team will assist quickly.
+        Need help with access or download? Reply to this email and our team will assist quickly.
       </p>
     `,
   );
 
   const text = [
-    "Your itinerary is ready.",
+    "Your custom DEXTGO itinerary is ready!",
     "",
-    `Itinerary: ${params.itineraryTitle}`,
-    `Receipt: ${receipt}`,
+    `${params.itineraryTitle} is ready for you.`,
+    "Please log in to your account dashboard to view and download your trip details.",
     "",
-    `Open your dashboard: ${link}`,
+    `Go to your dashboard: ${link}`,
     "",
     "Need help? Reply to this email.",
   ].join("\n");
 
   return sendEmail({
     to: params.to,
-    subject: `Your DEXTGO itinerary is ready — ${params.itineraryTitle}`,
+    subject: `Your custom DEXTGO itinerary is ready — ${params.itineraryTitle}`,
     html,
     text,
   });

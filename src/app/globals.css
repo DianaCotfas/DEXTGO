@@ -286,15 +286,13 @@ html {
   z-index: 9999 !important;
 }
 
-/* Diana requested no floating Iubenda button on pages. */
+/* Diana requested no floating Iubenda button on pages. Footer link stays visible. */
 .iubenda-cs-btn-floating,
 #iubenda-cs-preferences-link,
 #iubenda-cs-floating-btn,
 [data-iub-cs-floating-preferences-button],
-[data-iub-cs-preferences-button],
 [class*="iubenda-cs-floating"],
-[class*="iubenda-cs-preferences-link"],
-body > [data-iub-cs-preferences-button],
+body > [data-iub-cs-preferences-button]:not(footer *),
 body > [data-iub-cs-floating-preferences-button] {
   display: none !important;
   visibility: hidden !important;

@@ -11,7 +11,7 @@ import { requireAdmin } from "@/lib/auth";
 import type { Database, Json } from "@/lib/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  sendOrderConfirmationEmail,
+  sendItineraryReadyEmail,
   sendPrivatePaymentRequestEmail,
 } from "@/lib/email";
 import { getStripe, siteUrl } from "@/lib/stripe";
@@ -619,12 +619,10 @@ export async function grantPrivateItineraryAccess(formData: FormData) {
     let emailFailed = false;
     let emailErrorMessage = "";
     try {
-      await sendOrderConfirmationEmail({
+      await sendItineraryReadyEmail({
         to: email,
         itineraryTitle: itinerary.title,
         itinerarySlug: itinerary.slug,
-        amountCents: priceCents,
-        currency: itinerary.currency ?? "eur",
       });
     } catch (emailError) {
       emailFailed = true;
@@ -637,11 +635,11 @@ export async function grantPrivateItineraryAccess(formData: FormData) {
     revalidatePath(`/admin/itineraries/${parsed.itinerary_id}`);
     if (emailFailed) {
       redirect(
-        `/admin/itineraries/${parsed.itinerary_id}?status=granted&message=${encodeURIComponent(`Access granted, but confirmation email failed: ${emailErrorMessage}`)}`,
+        `/admin/itineraries/${parsed.itinerary_id}?status=granted&message=${encodeURIComponent(`Access granted, but delivery email failed: ${emailErrorMessage}`)}`,
       );
     }
     redirect(
-      `/admin/itineraries/${parsed.itinerary_id}?status=granted&message=${encodeURIComponent("Access granted and confirmation email sent.")}`,
+      `/admin/itineraries/${parsed.itinerary_id}?status=granted&message=${encodeURIComponent("Access granted and delivery email sent.")}`,
     );
   } catch (err) {
     if (isNextRedirectError(err)) throw err;
