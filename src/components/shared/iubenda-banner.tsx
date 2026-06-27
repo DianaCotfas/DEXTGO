@@ -1,8 +1,27 @@
-"use client";
-
 import Script from "next/script";
 import { HideIubendaFloatingBadge } from "@/components/shared/hide-iubenda-floating-badge";
 import { IUBENDA_CONFIG, hasIubendaBanner } from "@/lib/iubenda";
+
+const HIDE_FLOATING_CSS = `
+#iubenda-cs-preferences-link,
+#iubenda-cs-floating-btn,
+.iubenda-cs-btn-floating,
+[data-iub-cs-floating-preferences-button],
+[class*="iubenda-cs-floating"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+footer .iubenda-cs-preferences-link {
+  display: inline !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  width: auto !important;
+  height: auto !important;
+}
+`.trim();
 
 /**
  * Iubenda Cookie Solution banner.
@@ -10,9 +29,6 @@ import { IUBENDA_CONFIG, hasIubendaBanner } from "@/lib/iubenda";
  * Loads only when valid Iubenda IDs are present in env, and performs preventive
  * blocking of tracking scripts (Meta Pixel, GA, Google Ads, etc.) until the
  * visitor gives consent — as required by the Italian Garante and GDPR.
- *
- * Visitor actions (Accept All / Reject / Customize) and consent logs are
- * handled and stored by Iubenda's Consent Database automatically.
  */
 export function IubendaBanner() {
   if (!hasIubendaBanner()) return null;
@@ -25,12 +41,12 @@ export function IubendaBanner() {
     cookiePolicyId: Number(cookiePolicyId),
     lang: "en",
     storage: { useSiteId: true },
+    // Must be top-level (not inside banner) — see Iubenda advanced guide.
+    floatingPreferencesButtonDisplay: false,
     banner: {
       acceptButtonDisplay: true,
       customizeButtonDisplay: true,
       rejectButtonDisplay: true,
-      // Hide floating preference badge ("green i") and expose a footer link instead.
-      floatingPreferencesButtonDisplay: false,
       position: "float-bottom-center",
       acceptButtonColor: "#1D1D1F",
       acceptButtonCaptionColor: "white",
@@ -53,9 +69,7 @@ export function IubendaBanner() {
         id="iubenda-cs-config"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
-          __html: `var _iub = _iub || [];\n_iub.csConfiguration = ${JSON.stringify(
-            config,
-          )};`,
+          __html: `(function(){var s=document.getElementById("dextgo-iubenda-hide-floating");if(!s){s=document.createElement("style");s.id="dextgo-iubenda-hide-floating";s.textContent=${JSON.stringify(HIDE_FLOATING_CSS)};document.head.appendChild(s);}})();var _iub=_iub||[];_iub.csConfiguration=${JSON.stringify(config)};`,
         }}
       />
       <Script

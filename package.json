@@ -6,6 +6,8 @@
     "dev": "node scripts/dev-with-db-sync.mjs",
     "dev:plain": "next dev",
     "db:push": "node scripts/supabase-db-push.mjs",
+    "clean:next": "node scripts/clean-next.mjs",
+    "prebuild": "node scripts/clean-next.mjs",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
