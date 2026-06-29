@@ -1,4 +1,3 @@
-import Image from "next/image";
 import {
   Heart,
   Shield,
@@ -81,83 +80,49 @@ export function AboutContent() {
   return (
     <>
       <section className="section-padding section-gap">
-        <div className="mx-auto max-w-[1100px] grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
-          <div className="lg:col-span-7 space-y-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-4">
-                Our Story
-              </p>
-              <h2 className="text-3xl sm:text-4xl font-semibold text-foreground tracking-tight">
-                A travel philosophy, not just a platform.
-              </h2>
-              <p className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed">
-                DEXTGO was founded on the belief that every journey should be
-                as unique as the traveler who takes it. We craft detailed,
-                hand-tested itineraries that transform trips into
-                unforgettable experiences.
-              </p>
-            </div>
-
-            <div className="space-y-5">
-              <h3 className="text-xl font-semibold text-foreground">
-                Hand-crafted. Personally verified.
-              </h3>
-              <p className="text-base text-muted-foreground leading-relaxed">
-                Unlike mass-produced travel guides, every DEXTGO itinerary is
-                personally designed and verified. We travel the routes
-                ourselves, testing hotels, restaurants, and hidden gems
-                firsthand. The result is a level of detail and authenticity
-                you simply won&apos;t find anywhere else — complete with GPS
-                coordinates, professional audio guides, and expert insider
-                tips.
-              </p>
-            </div>
-
-            <div className="space-y-5">
-              <h3 className="text-xl font-semibold text-foreground">
-                Rooted in Europe. Curious about the world.
-              </h3>
-              <p className="text-base text-muted-foreground leading-relaxed">
-                Our work is the product of a small European team and a
-                network of trusted collaborators on the ground — from guides
-                and hoteliers to photographers and local experts. Together,
-                we curate journeys that combine the precision of an
-                architect with the warmth of a friend who knows exactly
-                where to send you.
-              </p>
-            </div>
+        <div className="mx-auto max-w-3xl space-y-10">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-4">
+              Our Story
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-semibold text-foreground tracking-tight">
+              A travel philosophy, not just a platform.
+            </h2>
+            <p className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed">
+              DEXTGO was founded on the belief that every journey should be
+              as unique as the traveler who takes it. We craft detailed,
+              hand-tested itineraries that transform trips into
+              unforgettable experiences.
+            </p>
           </div>
 
-          <div className="lg:col-span-5 space-y-5 lg:sticky lg:top-28">
-            <div className="relative aspect-[4/5] rounded-3xl overflow-hidden card-shadow">
-              <Image
-                src="/images/about-us/foto1.png"
-                alt="DEXTGO travel team moment"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 40vw"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-5">
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden card-shadow">
-                <Image
-                  src="/images/about-us/foto2.png"
-                  alt="DEXTGO destination preview"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 50vw, 20vw"
-                />
-              </div>
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden card-shadow">
-                <Image
-                  src="/images/about-us/foto3.png"
-                  alt="DEXTGO journey highlight"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 50vw, 20vw"
-                />
-              </div>
-            </div>
+          <div className="space-y-5">
+            <h3 className="text-xl font-semibold text-foreground">
+              Hand-crafted. Personally verified.
+            </h3>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Unlike mass-produced travel guides, every DEXTGO itinerary is
+              personally designed and verified. We travel the routes
+              ourselves, testing hotels, restaurants, and hidden gems
+              firsthand. The result is a level of detail and authenticity
+              you simply won&apos;t find anywhere else — complete with GPS
+              coordinates, professional audio guides, and expert insider
+              tips.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            <h3 className="text-xl font-semibold text-foreground">
+              Rooted in Europe. Curious about the world.
+            </h3>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Our work is the product of a small European team and a
+              network of trusted collaborators on the ground — from guides
+              and hoteliers to photographers and local experts. Together,
+              we curate journeys that combine the precision of an
+              architect with the warmth of a friend who knows exactly
+              where to send you.
+            </p>
           </div>
         </div>
       </section>
