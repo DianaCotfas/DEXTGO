@@ -7,7 +7,7 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import { resolveR2Url } from "@/lib/r2";
 import { resolveStreamUrl } from "@/lib/stream";
-import type { Itinerary, ItineraryExtras, ItineraryStep } from "@/types";
+import type { Itinerary, ItineraryExtras, ItineraryStep, ExtraLink } from "@/types";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -29,6 +29,21 @@ function resolveVideo(value: string | null | undefined): string | undefined {
   if (value.includes("/") || value.includes(".")) return resolveR2Url(value);
   // Otherwise attempt Cloudflare Stream UID resolution.
   return resolveStreamUrl(value) ?? undefined;
+}
+
+function parseExtraLinks(value: unknown): ExtraLink[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+  const links = value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const url = typeof (item as ExtraLink).url === "string" ? (item as ExtraLink).url.trim() : "";
+      if (!url) return null;
+      const label =
+        typeof (item as ExtraLink).label === "string" ? (item as ExtraLink).label.trim() : "";
+      return { label, url };
+    })
+    .filter((item): item is ExtraLink => item !== null);
+  return links.length > 0 ? links : undefined;
 }
 
 interface LoadedItinerary {
@@ -144,6 +159,7 @@ export async function loadItineraryBySlug(slug: string): Promise<LoadedItinerary
         descriptionAndAudio: s.description_long ?? undefined,
         descriptionAndAudioKids: s.description_kids ?? undefined,
         expertTips: s.expert_tips ?? undefined,
+        extraLinks: parseExtraLinks(s.extra_links),
       }))
     : fallbackSteps;
 

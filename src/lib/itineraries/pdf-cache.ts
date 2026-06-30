@@ -52,6 +52,15 @@ function mapDbStepToPdfStep(step: StepRow): ItineraryStep {
     officialUrl: step.official_url ?? undefined,
     googleMapsUrl: step.google_maps_url ?? undefined,
     address: step.address ?? undefined,
+    extraLinks: Array.isArray(step.extra_links)
+      ? step.extra_links.filter(
+          (link): link is { label: string; url: string } =>
+            !!link &&
+            typeof link === "object" &&
+            typeof link.url === "string" &&
+            link.url.trim() !== "",
+        )
+      : undefined,
   };
 }
 

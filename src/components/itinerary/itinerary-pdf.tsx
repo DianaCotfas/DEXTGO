@@ -264,12 +264,15 @@ export function ItineraryPdf({
                   {fullNarrative ? (
                     <Text style={styles.stepBody}>{fullNarrative}</Text>
                   ) : null}
-                  {(step.address || step.officialUrl || step.googleMapsUrl) && (
+                  {(step.address || step.officialUrl || step.googleMapsUrl || (step.extraLinks && step.extraLinks.length > 0)) && (
                     <Text style={styles.stepMeta}>
                       {[
                         step.address ? `Address: ${step.address}` : null,
                         step.officialUrl ? `Official: ${step.officialUrl}` : null,
                         step.googleMapsUrl ? `Maps: ${step.googleMapsUrl}` : null,
+                        ...(step.extraLinks?.map((link) =>
+                          `${link.label || "Link"}: ${link.url}`,
+                        ) ?? []),
                       ]
                         .filter(Boolean)
                         .join("\n")}

@@ -221,6 +221,7 @@ export interface Database {
           description_long: string | null;
           description_kids: string | null;
           expert_tips: string | null;
+          extra_links: { label: string; url: string }[] | null;
           created_at: string;
           updated_at: string;
         };
@@ -246,6 +247,7 @@ export interface Database {
           description_long?: string | null;
           description_kids?: string | null;
           expert_tips?: string | null;
+          extra_links?: { label: string; url: string }[] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -271,6 +273,7 @@ export interface Database {
           description_long?: string | null;
           description_kids?: string | null;
           expert_tips?: string | null;
+          extra_links?: { label: string; url: string }[] | null;
           created_at?: string;
           updated_at?: string;
         };
