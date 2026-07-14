@@ -3,18 +3,15 @@ import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { HorizontalSlider } from "@/components/shared/horizontal-slider";
 import { ITINERARY_INTERESTS } from "@/lib/itinerary-interest-filters";
+import { itineraryMatchesInterest } from "@/lib/itinerary-taxonomy";
 import { featuredItineraries } from "@/data/itineraries";
 import type { MarketingItineraryCard } from "@/lib/marketing-content";
 
 function matchesInterest(itinerary: MarketingItineraryCard, interestSlug: string) {
-  const rule = ITINERARY_INTERESTS.find((i) => i.slug === interestSlug);
-  if (!rule) return false;
-  const category = (itinerary.category ?? "").trim().toLowerCase();
-  if (!category) return false;
-  return (
-    category === rule.title.toLowerCase() ||
-    category === rule.label.toLowerCase() ||
-    category === rule.slug.toLowerCase()
+  return itineraryMatchesInterest(
+    itinerary.categories,
+    itinerary.category,
+    interestSlug,
   );
 }
 

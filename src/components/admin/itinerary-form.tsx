@@ -8,6 +8,12 @@ import { ExtrasEditor } from "@/components/admin/extras-editor";
 import { saveItinerary } from "@/app/(admin)/admin/itineraries/actions";
 import type { ItineraryExtras, TeaserFeature } from "@/types";
 import { ITINERARY_INTERESTS } from "@/lib/itinerary-interest-filters";
+import type { AdminRegionOption } from "@/lib/admin/region-options";
+import {
+  normalizeSlugValue,
+  resolveItineraryCategories,
+  resolveItineraryRegionSlugs,
+} from "@/lib/itinerary-taxonomy";
 
 type Initial = {
   id?: string;
@@ -22,15 +28,23 @@ type Initial = {
   hero_video_id?: string | null;
   country_slug?: string | null;
   region_slug?: string | null;
+  region_slugs?: string[] | null;
   duration?: string | null;
   price_cents?: number;
   currency?: string;
   status?: "draft" | "published" | "archived";
   category?: string | null;
+  categories?: string[] | null;
   category_color?: string | null;
 };
 
-export function ItineraryForm({ initial }: { initial?: Initial }) {
+export function ItineraryForm({
+  initial,
+  regionOptions = [],
+}: {
+  initial?: Initial;
+  regionOptions?: AdminRegionOption[];
+}) {
   const [heroUrl, setHeroUrl] = useState(initial?.hero_image_url ?? "");
   const [heroVideoRef, setHeroVideoRef] = useState(initial?.hero_video_id ?? "");
   const [previewImages, setPreviewImages] = useState<string[]>(
@@ -40,7 +54,13 @@ export function ItineraryForm({ initial }: { initial?: Initial }) {
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
   const [duration, setDuration] = useState(initial?.duration ?? "");
-  const [category, setCategory] = useState(initial?.category ?? "");
+  const [countrySlug, setCountrySlug] = useState(initial?.country_slug ?? "");
+  const [selectedRegionSlugs, setSelectedRegionSlugs] = useState<string[]>(() =>
+    resolveItineraryRegionSlugs(initial?.region_slugs, initial?.region_slug),
+  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() =>
+    resolveItineraryCategories(initial?.categories, initial?.category),
+  );
   const [priceCents, setPriceCents] = useState(
     initial?.price_cents != null ? String(initial.price_cents) : "0",
   );
@@ -51,6 +71,14 @@ export function ItineraryForm({ initial }: { initial?: Initial }) {
   const publicTeaser = extras.publicTeaser ?? {};
   const leftFeatures = publicTeaser.leftFeatures ?? [];
   const lockedFeatures = publicTeaser.lockedFeatures ?? [];
+  const normalizedCountry = normalizeSlugValue(countrySlug);
+  const visibleRegions = regionOptions.filter(
+    (option) => !normalizedCountry || option.countrySlug === normalizedCountry,
+  );
+  const selectedRegionLabels = selectedRegionSlugs
+    .map((slug) => regionOptions.find((option) => option.regionSlug === slug)?.regionName ?? slug)
+    .filter(Boolean);
+  const previewCategories = selectedCategories;
 
   function patchPublicTeaser(
     patch: Partial<NonNullable<ItineraryExtras["publicTeaser"]>>,
@@ -70,6 +98,8 @@ export function ItineraryForm({ initial }: { initial?: Initial }) {
         fd.set("hero_image_url", heroUrl);
         fd.set("hero_video_id", heroVideoRef);
         fd.set("preview_image_urls", JSON.stringify(previewImages));
+        fd.set("region_slugs", JSON.stringify(selectedRegionSlugs));
+        fd.set("categories", JSON.stringify(selectedCategories));
         fd.set("extras", JSON.stringify(normalizeExtrasForSave(extras)));
         start(() => saveItinerary(fd));
       }}
@@ -95,11 +125,22 @@ export function ItineraryForm({ initial }: { initial?: Initial }) {
               {previewSubtitle}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-              {category && (
-                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1">
-                  {category}
+              {previewCategories.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1"
+                >
+                  {item}
                 </span>
-              )}
+              ))}
+              {selectedRegionLabels.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1"
+                >
+                  {item}
+                </span>
+              ))}
               {duration && (
                 <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1">
                   {duration}
@@ -142,13 +183,32 @@ export function ItineraryForm({ initial }: { initial?: Initial }) {
           prefix="itineraries/heroes"
           label="Hero image"
         />
+        <VideoUploader
+          value={heroVideoRef}
+          onChange={setHeroVideoRef}
+          prefix="itineraries/heroes/videos"
+          label="Hero video"
+          maxSizeMb={120}
+        />
         <div className="grid sm:grid-cols-2 gap-4">
-          <VideoUploader
-            value={heroVideoRef}
-            onChange={setHeroVideoRef}
-            prefix="itineraries/heroes/videos"
-            label="Hero video"
-            maxSizeMb={120}
+          <Field
+            label="Country slug"
+            name="country_slug"
+            value={countrySlug}
+            onChange={(e) => {
+              const nextCountry = e.currentTarget.value;
+              setCountrySlug(nextCountry);
+              const nextNormalized = normalizeSlugValue(nextCountry);
+              setSelectedRegionSlugs((current) =>
+                current.filter((slug) =>
+                  regionOptions.some(
+                    (option) =>
+                      option.regionSlug === slug && option.countrySlug === nextNormalized,
+                  ),
+                ),
+              );
+            }}
+            placeholder="italy"
           />
           <Field
             label="Duration"
@@ -158,40 +218,36 @@ export function ItineraryForm({ initial }: { initial?: Initial }) {
             placeholder="5 days"
           />
         </div>
-        <div className="grid sm:grid-cols-3 gap-4">
-          <Field
-            label="Country slug"
-            name="country_slug"
-            defaultValue={initial?.country_slug ?? ""}
-            placeholder="italy"
+
+        <div className="grid lg:grid-cols-2 gap-4">
+          <CheckboxGroup
+            label="Regions"
+            hint="Select every region where this itinerary should appear."
+            emptyMessage={
+              normalizedCountry
+                ? "No regions found for this country."
+                : "Choose a country slug to see available regions."
+            }
+            options={visibleRegions.map((option) => ({
+              value: option.regionSlug,
+              label: option.regionName,
+              description: option.countryName,
+            }))}
+            selected={selectedRegionSlugs}
+            onChange={setSelectedRegionSlugs}
           />
-          <Field
-            label="Region slug"
-            name="region_slug"
-            defaultValue={initial?.region_slug ?? ""}
-            placeholder="lazio"
+          <CheckboxGroup
+            label="Categories (interest filters)"
+            hint='Controls which "Explore by Interest" sections include this itinerary.'
+            emptyMessage="No categories configured."
+            options={ITINERARY_INTERESTS.map((interest) => ({
+              value: interest.title,
+              label: interest.title,
+              description: interest.label,
+            }))}
+            selected={selectedCategories}
+            onChange={setSelectedCategories}
           />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground/70">
-              Category <span className="text-foreground/40 font-normal">(interest filter)</span>
-            </label>
-            <select
-              name="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="rounded-xl border border-black/[0.08] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-            >
-              <option value="">— None / not categorised —</option>
-              {ITINERARY_INTERESTS.map((interest) => (
-                <option key={interest.slug} value={interest.title}>
-                  {interest.title} ({interest.label})
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-foreground/45">
-              This controls which &quot;Explore by Interest&quot; section the itinerary appears in.
-            </p>
-          </div>
         </div>
         <div className="grid sm:grid-cols-3 gap-4">
           <Field
@@ -327,6 +383,75 @@ function normalizeExtrasForSave(extras: ItineraryExtras): ItineraryExtras {
     ...extras,
     publicTeaser,
   };
+}
+
+function CheckboxGroup({
+  label,
+  hint,
+  emptyMessage,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  emptyMessage: string;
+  options: Array<{ value: string; label: string; description?: string }>;
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  function toggle(value: string) {
+    onChange(
+      selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value],
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-black/[0.06] bg-[#fafafa] p-3 sm:p-4 space-y-3">
+      <div>
+        <p className="text-xs font-semibold text-foreground">{label}</p>
+        {hint && <p className="text-[11px] text-foreground/55">{hint}</p>}
+      </div>
+      {options.length === 0 ? (
+        <p className="text-xs text-foreground/50">{emptyMessage}</p>
+      ) : (
+        <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+          {options.map((option) => {
+            const checked = selected.includes(option.value);
+            return (
+              <label
+                key={option.value}
+                className={`flex items-start gap-3 rounded-xl border px-3 py-2 cursor-pointer transition ${
+                  checked
+                    ? "border-[#1D1D1F]/20 bg-white"
+                    : "border-black/[0.06] bg-white/70 hover:bg-white"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(option.value)}
+                  className="mt-0.5"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground">
+                    {option.label}
+                  </span>
+                  {option.description && (
+                    <span className="block text-[11px] text-foreground/55">
+                      {option.description}
+                    </span>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Field(props: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {

@@ -94,7 +94,61 @@ Remove old value first, then add (Vercel does not support in-place edit via CLI)
 
 ```powershell
 npx vercel env rm VARIABLE_NAME production --yes --scope $SCOPE --token $TOKEN
-"your-value" | npx vercel env add VARIABLE_NAME production --scope $SCOPE --token $TOKEN
+npx vercel env add VARIABLE_NAME production --value "your-value" --yes --scope $SCOPE --token $TOKEN
+```
+
+### Quick: update one key from `.env.local` (e.g. OpenAI)
+
+Use this when you changed **one** value locally and do not want a full env sync.
+
+```powershell
+cd D:\Personal\dextgo\dextgo-web
+
+$env:XDG_DATA_HOME = "$env:LOCALAPPDATA\Temp\vercel-xdg"
+$TOKEN = "PASTE_DIANA_VERCEL_TOKEN"
+$SCOPE = "diana-cotfas-projects"
+$DEPLOY_HOOK = "https://api.vercel.com/v1/integrations/deploy/prj_DEGnmKCo9S7tw60rhx7lCCtC6P02/fNWapzn9p3"
+
+# Pick the variable name you edited in .env.local
+$NAME = "OPENAI_API_KEY"
+$val = (Get-Content '.env.local' | Where-Object { $_ -match "^${NAME}=" }) -replace "^${NAME}=",''
+if ([string]::IsNullOrWhiteSpace($val)) { throw "No value for $NAME in .env.local" }
+
+npx vercel env rm $NAME production --yes --scope $SCOPE --token $TOKEN
+npx vercel env add $NAME production --value $val --yes --scope $SCOPE --token $TOKEN
+
+# Required — new env values only apply after redeploy
+Invoke-RestMethod -Method POST -Uri $DEPLOY_HOOK
+```
+
+Swap `OPENAI_API_KEY` for any other name (`R2_SECRET_ACCESS_KEY`, `STRIPE_SECRET_KEY`, etc.).
+
+**Audio-related vars** (if you use OpenAI TTS): `OPENAI_API_KEY`, `AUDIO_PROVIDER`, `OPENAI_TTS_VOICE`, `OPENAI_TTS_MODEL` — update each the same way, then redeploy once.
+
+### View / verify one credential on Vercel
+
+After updating, confirm production has the right value (uses the same `$NAME`, `$SCOPE`, `$TOKEN`):
+
+```powershell
+# 1) Confirm the variable exists (list shows names only — not secret values)
+npx vercel env ls production --scope $SCOPE --token $TOKEN | Select-String $NAME
+
+# 2) Pull production env to a temp file and read that one key
+$CHECK = ".env.vercel.check"
+npx vercel env pull $CHECK --environment=production --yes --scope $SCOPE --token $TOKEN
+$remote = (Get-Content $CHECK | Where-Object { $_ -match "^${NAME}=" }) -replace "^${NAME}=",''
+Remove-Item $CHECK -ErrorAction SilentlyContinue
+
+if ([string]::IsNullOrWhiteSpace($remote)) {
+  Write-Host "$NAME is missing on Vercel production"
+} else {
+  # Masked preview (safe to paste in chat). For full value locally: Write-Host $remote
+  Write-Host "$NAME on Vercel: $($remote.Substring(0, [Math]::Min(8, $remote.Length)))... ($($remote.Length) chars)"
+}
+
+# 3) Optional — compare with .env.local
+$local = (Get-Content '.env.local' | Where-Object { $_ -match "^${NAME}=" }) -replace "^${NAME}=",''
+if ($local -eq $remote) { Write-Host "OK: .env.local matches Vercel" } else { Write-Host "Mismatch — re-run the update step above" }
 ```
 
 ### Required production values (minimum)
@@ -122,19 +176,28 @@ After changing env vars, **trigger a new production deploy** (deploy hook).
 
 ### Bulk upload from local `.env.local`
 
-From app root, only non-empty lines (adjust path to your env file):
+**Prerequisite:** run the session variables block in §1 (`$TOKEN`, `$SCOPE`) in the **same** PowerShell window first.
+
+From app root:
 
 ```powershell
+if ([string]::IsNullOrWhiteSpace($SCOPE) -or [string]::IsNullOrWhiteSpace($TOKEN)) {
+  throw "Set `$SCOPE and `$TOKEN first (see section 1)"
+}
+
 $skip = @('SUPABASE_PROJECT_REF','SUPABASE_ACCESS_TOKEN','SUPABASE_DB_PASSWORD')
 Get-Content '.env.local' | Where-Object { $_ -and -not $_.StartsWith('#') -and $_.Contains('=') } | ForEach-Object {
   $parts = $_ -split '=', 2
   $name = $parts[0].Trim()
   $value = $parts[1]
   if ($skip -contains $name -or [string]::IsNullOrWhiteSpace($value)) { return }
+  Write-Host "Syncing $name ..."
   npx vercel env rm $name production --yes --scope $SCOPE --token $TOKEN 2>$null
-  $value | npx vercel env add $name production --scope $SCOPE --token $TOKEN
+  npx vercel env add $name production --value $value --yes --scope $SCOPE --token $TOKEN
 }
 ```
+
+Use `--value` (not stdin pipe) — piping values into `vercel env add` can silently save empty strings on some CLI versions.
 
 ---
 

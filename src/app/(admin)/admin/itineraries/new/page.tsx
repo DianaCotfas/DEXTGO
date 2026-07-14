@@ -1,4 +1,5 @@
 import { ItineraryForm } from "@/components/admin/itinerary-form";
+import { loadAdminRegionOptions } from "@/lib/admin/region-options";
 
 export const metadata = { title: "New itinerary — Admin DEXTGO" };
 
@@ -8,6 +9,7 @@ interface NewItineraryPageProps {
 
 export default async function NewItineraryPage({ searchParams }: NewItineraryPageProps) {
   const { error, message } = await searchParams;
+  const regionOptions = await loadAdminRegionOptions();
   const readableMessage = (() => {
     if (!message) return null;
     try {
@@ -30,7 +32,7 @@ export default async function NewItineraryPage({ searchParams }: NewItineraryPag
           <p className="mt-1">{readableMessage ?? "Please review the fields and try again."}</p>
         </div>
       )}
-      <ItineraryForm />
+      <ItineraryForm regionOptions={regionOptions} />
     </div>
   );
 }

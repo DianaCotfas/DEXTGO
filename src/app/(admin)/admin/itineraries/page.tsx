@@ -6,6 +6,7 @@ import {
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/format";
+import { resolveItineraryRegionSlugs } from "@/lib/itinerary-taxonomy";
 import { RegeneratePdfButton } from "@/components/admin/regenerate-pdf-button";
 import { syncStaticContentAction } from "../actions";
 import { deleteItinerary, regenerateItineraryPdfAction } from "./actions";
@@ -32,7 +33,7 @@ export default async function AdminItinerariesPage({ searchParams }: AdminItiner
     ? await supabase
         .from("itineraries")
         .select(
-          "id, slug, title, country_slug, region_slug, price_cents, currency, status, updated_at, pdf_r2_key, pdf_generated_at",
+          "id, slug, title, country_slug, region_slug, region_slugs, price_cents, currency, status, updated_at, pdf_r2_key, pdf_generated_at",
         )
         .order("updated_at", { ascending: false })
     : { data: null };
@@ -144,7 +145,13 @@ export default async function AdminItinerariesPage({ searchParams }: AdminItiner
                 <td className="px-5 py-3 font-medium">{it.title}</td>
                 <td className="px-5 py-3 text-foreground/60">
                   {it.country_slug}
-                  {it.region_slug ? ` / ${it.region_slug}` : ""}
+                  {(() => {
+                    const regionSlugs = resolveItineraryRegionSlugs(
+                      "region_slugs" in it ? it.region_slugs : [],
+                      it.region_slug,
+                    );
+                    return regionSlugs.length ? ` / ${regionSlugs.join(", ")}` : "";
+                  })()}
                 </td>
                 <td className="px-5 py-3">{formatPrice(it.price_cents, it.currency)}</td>
                 <td className="px-5 py-3">

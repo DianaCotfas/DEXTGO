@@ -4,6 +4,7 @@ import {
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
 import { ItineraryForm } from "@/components/admin/itinerary-form";
+import { loadAdminRegionOptions } from "@/lib/admin/region-options";
 import { StepEditor } from "@/components/admin/step-editor";
 import { isConfigured } from "@/lib/env";
 import { isTtsConfigured } from "@/lib/tts";
@@ -49,6 +50,8 @@ export default async function EditItineraryPage({ params, searchParams }: PagePr
     .maybeSingle();
   if (!itinerary) notFound();
 
+  const regionOptions = await loadAdminRegionOptions();
+
   const { data: steps } = await supabase
     .from("itinerary_steps")
     .select("*")
@@ -83,6 +86,7 @@ export default async function EditItineraryPage({ params, searchParams }: PagePr
       </header>
 
       <ItineraryForm
+        regionOptions={regionOptions}
         initial={{
           ...itinerary,
           extras: (itinerary.extras as ItineraryExtras | null) ?? null,

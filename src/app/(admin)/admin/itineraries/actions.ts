@@ -14,6 +14,11 @@ import {
   sendItineraryReadyEmail,
   sendPrivatePaymentRequestEmail,
 } from "@/lib/email";
+import {
+  normalizeSlugValue,
+  normalizeStringList,
+  syncLegacyTaxonomyFields,
+} from "@/lib/itinerary-taxonomy";
 import { getStripe, siteUrl } from "@/lib/stripe";
 
 type ItineraryStepInsert = Database["public"]["Tables"]["itinerary_steps"]["Insert"];
@@ -106,6 +111,10 @@ const ItinerarySchema = z.object({
     (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
     optionalText,
   ),
+  region_slugs: z
+    .array(z.string().trim().min(1))
+    .optional()
+    .default([]),
   duration: optionalText,
   price_cents: z.preprocess(
     emptyToUndefined,
@@ -117,8 +126,42 @@ const ItinerarySchema = z.object({
     z.enum(["draft", "published", "archived"]).optional(),
   ),
   category: optionalText,
+  categories: z
+    .array(z.string().trim().min(1))
+    .optional()
+    .default([]),
   category_color: optionalText,
 });
+
+function parseStringArray(value: FormDataEntryValue | null): string[] {
+  if (!value || typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildTaxonomyPayload(input: {
+  regionSlugs?: string[];
+  categories?: string[];
+}) {
+  const regionSlugs = normalizeStringList(input.regionSlugs ?? []).map((slug) =>
+    normalizeSlugValue(slug),
+  );
+  const categories = normalizeStringList(input.categories ?? []);
+  const legacy = syncLegacyTaxonomyFields({ regionSlugs, categories });
+
+  return {
+    region_slugs: regionSlugs,
+    categories,
+    region_slug: legacy.region_slug,
+    category: legacy.category,
+  };
+}
 
 function parseJson<T>(value: FormDataEntryValue | null, fallback: T): T {
   if (!value || typeof value !== "string") return fallback;
@@ -242,12 +285,20 @@ export async function saveItinerary(formData: FormData) {
     if (!supabase) throw new Error("Supabase not configured");
 
     const previewImages = parseJson<string[]>(formData.get("preview_image_urls"), []);
+    const regionSlugs = parseStringArray(formData.get("region_slugs"));
+    const categories = parseStringArray(formData.get("categories"));
     const extras = parseJson<Json | null>(formData.get("extras"), null);
 
     const parsed = ItinerarySchema.parse({
       ...raw,
       preview_image_urls: previewImages,
+      region_slugs: regionSlugs,
+      categories,
       extras,
+    });
+    const taxonomy = buildTaxonomyPayload({
+      regionSlugs: parsed.region_slugs,
+      categories: parsed.categories,
     });
 
     if (parsed.id) {
@@ -278,12 +329,14 @@ export async function saveItinerary(formData: FormData) {
         hero_image_url: parsed.hero_image_url ?? existing.hero_image_url,
         hero_video_id: parsed.hero_video_id ?? existing.hero_video_id,
         country_slug: parsed.country_slug ?? existing.country_slug,
-        region_slug: parsed.region_slug ?? existing.region_slug,
+        region_slugs: taxonomy.region_slugs,
+        region_slug: taxonomy.region_slug,
         duration: parsed.duration ?? existing.duration,
         price_cents: parsed.price_cents ?? existing.price_cents ?? 0,
         currency: parsed.currency ?? existing.currency ?? "eur",
         status: parsed.status ?? existing.status ?? "draft",
-        category: parsed.category ?? existing.category,
+        categories: taxonomy.categories,
+        category: taxonomy.category,
         category_color: parsed.category_color ?? existing.category_color,
       };
 
@@ -294,6 +347,7 @@ export async function saveItinerary(formData: FormData) {
       if (error) throw error;
       await regenerateItineraryPdfCached(parsed.id, supabase);
       revalidatePath("/admin/itineraries");
+      revalidatePath("/itineraries");
       revalidatePath(`/itineraries/${slug}`);
       redirect(`/admin/itineraries/${parsed.id}?status=updated`);
     } else {
@@ -312,12 +366,14 @@ export async function saveItinerary(formData: FormData) {
         hero_image_url: parsed.hero_image_url ?? null,
         hero_video_id: parsed.hero_video_id ?? null,
         country_slug: parsed.country_slug ?? null,
-        region_slug: parsed.region_slug ?? null,
+        region_slugs: taxonomy.region_slugs,
+        region_slug: taxonomy.region_slug,
         duration: parsed.duration ?? null,
         price_cents: parsed.price_cents ?? 0,
         currency: parsed.currency ?? "eur",
         status: parsed.status ?? "draft",
-        category: parsed.category ?? null,
+        categories: taxonomy.categories,
+        category: taxonomy.category,
         category_color: parsed.category_color ?? null,
       };
       const { data, error } = await supabase

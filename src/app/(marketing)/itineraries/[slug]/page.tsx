@@ -65,11 +65,13 @@ export default async function ItineraryDetailPage({ params }: PageProps) {
               className="pointer-events-auto inline-flex items-center justify-center gap-2 text-xs font-light uppercase tracking-[0.2em] text-white/90 hover:text-white"
             >
               <span>{itinerary.country}</span>
-              {itinerary.region && (
-                <>
-                  <span className="opacity-50">/</span>
-                  <span>{itinerary.region}</span>
-                </>
+              {(itinerary.regions?.length ? itinerary.regions : itinerary.region ? [itinerary.region] : []).map(
+                (regionName, index) => (
+                  <span key={`${regionName}-${index}`} className="inline-flex items-center gap-2">
+                    <span className="opacity-50">/</span>
+                    <span>{regionName}</span>
+                  </span>
+                ),
               )}
             </Link>
             <h1 className="mt-5 text-4xl sm:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight text-balance text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.7)]">
@@ -79,11 +81,19 @@ export default async function ItineraryDetailPage({ params }: PageProps) {
               {itinerary.excerpt}
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-white/85">
-              {itinerary.category && (
-                <span className="rounded-full border border-white/25 bg-white/10 px-4 py-1.5 backdrop-blur">
-                  {itinerary.category}
+              {(itinerary.categories?.length
+                ? itinerary.categories
+                : itinerary.category
+                  ? [itinerary.category]
+                  : []
+              ).map((category) => (
+                <span
+                  key={category}
+                  className="rounded-full border border-white/25 bg-white/10 px-4 py-1.5 backdrop-blur"
+                >
+                  {category}
                 </span>
-              )}
+              ))}
               <span className="rounded-full border border-white/25 bg-white/10 px-4 py-1.5 backdrop-blur">
                 {itinerary.duration}
               </span>

@@ -1,4 +1,5 @@
 import { featuredItineraries } from "@/data/itineraries";
+import { countries as staticCountries } from "@/data/countries";
 import { ITINERARY_STEPS } from "@/data/itinerary-steps";
 import {
   createSupabaseAdminClient,
@@ -8,6 +9,11 @@ import { getCurrentUser } from "@/lib/auth";
 import { resolveR2Url } from "@/lib/r2";
 import { resolveStreamUrl } from "@/lib/stream";
 import type { Itinerary, ItineraryExtras, ItineraryStep, ExtraLink } from "@/types";
+import {
+  primaryCategoryLabel,
+  resolveItineraryCategories,
+  resolveItineraryRegionSlugs,
+} from "@/lib/itinerary-taxonomy";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -44,6 +50,25 @@ function parseExtraLinks(value: unknown): ExtraLink[] | undefined {
     })
     .filter((item): item is ExtraLink => item !== null);
   return links.length > 0 ? links : undefined;
+}
+
+function titleCaseSlug(value: string) {
+  return value
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function resolveRegionNames(
+  countrySlug: string | null | undefined,
+  regionSlugs: string[],
+): string[] {
+  if (!regionSlugs.length) return [];
+  const country = staticCountries.find((item) => item.slug === countrySlug);
+  return regionSlugs.map(
+    (slug) => country?.regions?.find((region) => region.slug === slug)?.name ?? titleCaseSlug(slug),
+  );
 }
 
 interface LoadedItinerary {
@@ -114,14 +139,23 @@ export async function loadItineraryBySlug(slug: string): Promise<LoadedItinerary
     .eq("itinerary_id", dbItinerary.id)
     .order("position");
 
+  const regionSlugs = resolveItineraryRegionSlugs(
+    dbItinerary.region_slugs,
+    dbItinerary.region_slug,
+  );
+  const regionNames = resolveRegionNames(dbItinerary.country_slug, regionSlugs);
+  const categories = resolveItineraryCategories(dbItinerary.categories, dbItinerary.category);
+
   const merged: Itinerary = {
     id: dbItinerary.id,
     slug: dbItinerary.slug,
     title: dbItinerary.title,
     country: fallback?.country ?? dbItinerary.country_slug ?? "",
     countrySlug: dbItinerary.country_slug ?? fallback?.countrySlug,
-    region: fallback?.region ?? dbItinerary.region_slug ?? "",
-    regionSlug: dbItinerary.region_slug ?? fallback?.regionSlug,
+    region: regionNames[0] ?? fallback?.region ?? dbItinerary.region_slug ?? "",
+    regionSlug: regionSlugs[0] ?? fallback?.regionSlug,
+    regionSlugs,
+    regions: regionNames.length ? regionNames : fallback?.regions,
     duration: dbItinerary.duration ?? fallback?.duration ?? "",
     price: dbItinerary.price_cents ? dbItinerary.price_cents / 100 : fallback?.price ?? 0,
     image: resolveImage(dbItinerary.hero_image_url) ?? fallback?.image ?? "",
@@ -135,7 +169,8 @@ export async function loadItineraryBySlug(slug: string): Promise<LoadedItinerary
     extras: (dbItinerary.extras as ItineraryExtras | null) ?? fallback?.extras,
     heroVideoId:
       resolveVideo(dbItinerary.hero_video_id) ?? resolveVideo(fallback?.heroVideoId),
-    category: dbItinerary.category ?? fallback?.category,
+    category: primaryCategoryLabel(categories, dbItinerary.category) ?? fallback?.category,
+    categories: categories.length ? categories : fallback?.categories,
   };
 
   const mergedSteps: ItineraryStep[] = (dbSteps ?? []).length

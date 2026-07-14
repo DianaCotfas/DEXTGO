@@ -47,10 +47,18 @@ export function LatestItineraries({
                       </span>
                     </div>
                     {itinerary.category && (
-                      <div className="absolute top-16 left-4 right-16 z-10 pointer-events-none">
-                        <span className="inline-flex items-center max-w-full truncate px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold text-[#1D1D1F]">
-                          {itinerary.category}
-                        </span>
+                      <div className="absolute top-16 left-4 right-16 z-10 pointer-events-none flex flex-wrap gap-2">
+                        {(itinerary.categories?.length
+                          ? itinerary.categories
+                          : [itinerary.category]
+                        ).map((category) => (
+                          <span
+                            key={category}
+                            className="inline-flex items-center max-w-full truncate px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold text-[#1D1D1F]"
+                          >
+                            {category}
+                          </span>
+                        ))}
                       </div>
                     )}
                     <div className="absolute top-4 right-4 z-20">

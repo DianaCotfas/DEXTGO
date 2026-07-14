@@ -11,6 +11,11 @@ import {
   createSupabaseAdminClient,
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
+import {
+  itineraryMatchesRegion,
+  primaryCategoryLabel,
+  resolveItineraryCategories,
+} from "@/lib/itinerary-taxonomy";
 
 export type MarketingItineraryCard = {
   id: string;
@@ -22,6 +27,7 @@ export type MarketingItineraryCard = {
   image: string;
   excerpt: string;
   category?: string;
+  categories?: string[];
 };
 
 export type MarketingCountryCard = {
@@ -220,6 +226,38 @@ export async function loadHeroMediaByPageSlug(pageSlug: string): Promise<HeroMed
   };
 }
 
+function mapItineraryRowToCard(row: {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  hero_image_url: string | null;
+  country_slug: string | null;
+  duration: string | null;
+  price_cents: number | null;
+  category: string | null;
+  categories?: string[] | null;
+}) {
+  const fallback = fallbackItineraryBySlug.get(row.slug);
+  const categories = resolveItineraryCategories(row.categories, row.category);
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: resolveText(row.title, fallback?.title ?? DEFAULT_ITINERARY_TITLE),
+    country: resolveText(
+      resolveCountryName(row.country_slug, fallback?.country),
+      DEFAULT_ITINERARY_COUNTRY,
+    ),
+    duration: resolveText(row.duration, fallback?.duration ?? DEFAULT_ITINERARY_DURATION),
+    price:
+      row.price_cents != null ? Math.max(0, Math.round(row.price_cents / 100)) : fallback?.price ?? 0,
+    image: resolveItineraryCardImage(row.hero_image_url, fallback?.image),
+    excerpt: resolveText(row.excerpt, fallback?.excerpt ?? DEFAULT_ITINERARY_EXCERPT),
+    category: primaryCategoryLabel(categories, row.category) ?? fallback?.category,
+    categories,
+  } satisfies MarketingItineraryCard;
+}
+
 export async function loadPublishedItineraryCards(
   limit?: number,
 ): Promise<MarketingItineraryCard[]> {
@@ -230,7 +268,7 @@ export async function loadPublishedItineraryCards(
   const { data } = await supabase
     .from("itineraries")
     .select(
-      "id, slug, title, excerpt, hero_image_url, country_slug, duration, price_cents, category, updated_at",
+      "id, slug, title, excerpt, hero_image_url, country_slug, region_slug, region_slugs, duration, price_cents, category, categories, updated_at",
     )
     .eq("status", "published")
     .order("updated_at", { ascending: false });
@@ -238,24 +276,7 @@ export async function loadPublishedItineraryCards(
   // If DB has no published itineraries → return empty (no static fallback that confuses users)
   if (!(data ?? []).length) return [];
 
-  const mapped = (data ?? []).map((row) => {
-    const fallback = fallbackItineraryBySlug.get(row.slug);
-    return {
-      id: row.id,
-      slug: row.slug,
-      title: resolveText(row.title, fallback?.title ?? DEFAULT_ITINERARY_TITLE),
-      country: resolveText(
-        resolveCountryName(row.country_slug, fallback?.country),
-        DEFAULT_ITINERARY_COUNTRY,
-      ),
-      duration: resolveText(row.duration, fallback?.duration ?? DEFAULT_ITINERARY_DURATION),
-      price:
-        row.price_cents != null ? Math.max(0, Math.round(row.price_cents / 100)) : fallback?.price ?? 0,
-      image: resolveItineraryCardImage(row.hero_image_url, fallback?.image),
-      excerpt: resolveText(row.excerpt, fallback?.excerpt ?? DEFAULT_ITINERARY_EXCERPT),
-      category: row.category ?? fallback?.category,
-    } satisfies MarketingItineraryCard;
-  });
+  const mapped = (data ?? []).map((row) => mapItineraryRowToCard(row));
   return typeof limit === "number" ? mapped.slice(0, limit) : mapped;
 }
 
@@ -397,7 +418,7 @@ export async function loadPublishedItineraryCardsByCountry(
   const { data } = await supabase
     .from("itineraries")
     .select(
-      "id, slug, title, excerpt, hero_image_url, country_slug, duration, price_cents, category, updated_at",
+      "id, slug, title, excerpt, hero_image_url, country_slug, region_slug, region_slugs, duration, price_cents, category, categories, updated_at",
     )
     .eq("status", "published")
     .order("updated_at", { ascending: false });
@@ -407,24 +428,7 @@ export async function loadPublishedItineraryCardsByCountry(
   );
   if (!rows.length) return [];
 
-  return rows.map((row) => {
-    const fallback = fallbackItineraryBySlug.get(row.slug);
-    return {
-      id: row.id,
-      slug: row.slug,
-      title: resolveText(row.title, fallback?.title ?? DEFAULT_ITINERARY_TITLE),
-      country: resolveText(
-        resolveCountryName(row.country_slug, fallback?.country),
-        DEFAULT_ITINERARY_COUNTRY,
-      ),
-      duration: resolveText(row.duration, fallback?.duration ?? DEFAULT_ITINERARY_DURATION),
-      price:
-        row.price_cents != null ? Math.max(0, Math.round(row.price_cents / 100)) : fallback?.price ?? 0,
-      image: resolveItineraryCardImage(row.hero_image_url, fallback?.image),
-      excerpt: resolveText(row.excerpt, fallback?.excerpt ?? DEFAULT_ITINERARY_EXCERPT),
-      category: row.category ?? fallback?.category,
-    } satisfies MarketingItineraryCard;
-  });
+  return rows.map((row) => mapItineraryRowToCard(row));
 }
 
 export async function loadPublishedItineraryCardsByRegion(
@@ -434,42 +438,20 @@ export async function loadPublishedItineraryCardsByRegion(
   const supabase = await marketingClient();
   if (!supabase) return [];
 
-  const normalizedCountry = normalizeSlugValue(countrySlug);
-  const normalizedRegion = normalizeSlugValue(regionSlug);
-
   const { data } = await supabase
     .from("itineraries")
     .select(
-      "id, slug, title, excerpt, hero_image_url, country_slug, region_slug, duration, price_cents, category, updated_at",
+      "id, slug, title, excerpt, hero_image_url, country_slug, region_slug, region_slugs, duration, price_cents, category, categories, updated_at",
     )
     .eq("status", "published")
     .order("updated_at", { ascending: false });
 
-  const rows = (data ?? []).filter(
-    (row) =>
-      normalizeSlugValue(row.country_slug) === normalizedCountry &&
-      normalizeSlugValue(row.region_slug) === normalizedRegion,
+  const rows = (data ?? []).filter((row) =>
+    itineraryMatchesRegion(row, countrySlug, regionSlug),
   );
   if (!rows.length) return [];
 
-  return rows.map((row) => {
-    const fallback = fallbackItineraryBySlug.get(row.slug);
-    return {
-      id: row.id,
-      slug: row.slug,
-      title: resolveText(row.title, fallback?.title ?? DEFAULT_ITINERARY_TITLE),
-      country: resolveText(
-        resolveCountryName(row.country_slug, fallback?.country),
-        DEFAULT_ITINERARY_COUNTRY,
-      ),
-      duration: resolveText(row.duration, fallback?.duration ?? DEFAULT_ITINERARY_DURATION),
-      price:
-        row.price_cents != null ? Math.max(0, Math.round(row.price_cents / 100)) : fallback?.price ?? 0,
-      image: resolveItineraryCardImage(row.hero_image_url, fallback?.image),
-      excerpt: resolveText(row.excerpt, fallback?.excerpt ?? DEFAULT_ITINERARY_EXCERPT),
-      category: row.category ?? fallback?.category,
-    } satisfies MarketingItineraryCard;
-  });
+  return rows.map((row) => mapItineraryRowToCard(row));
 }
 
 export async function loadBlogSliderPosts(limit?: number): Promise<BlogPost[]> {

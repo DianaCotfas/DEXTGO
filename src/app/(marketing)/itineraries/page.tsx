@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { HorizontalSlider } from "@/components/shared/horizontal-slider";
 import { SaveTripButton } from "@/components/itinerary/save-trip-button";
 import { ITINERARY_INTERESTS } from "@/lib/itinerary-interest-filters";
+import { itineraryMatchesInterest } from "@/lib/itinerary-taxonomy";
 import {
   loadCountryCards,
   loadHeroMediaByPageSlug,
@@ -30,16 +31,10 @@ function matchesInterest(
   itinerary: MarketingItineraryCard,
   interestSlug: string,
 ) {
-  const rule = ITINERARY_INTERESTS.find((i) => i.slug === interestSlug);
-  if (!rule) return false;
-  // STRICT: match only against the explicit category field (set via admin dropdown)
-  const category = (itinerary.category ?? "").trim().toLowerCase();
-  if (!category) return false;
-  // The dropdown stores the rule.title (e.g. "Family Trips"); also accept rule.label or rule.slug
-  return (
-    category === rule.title.toLowerCase() ||
-    category === rule.label.toLowerCase() ||
-    category === rule.slug.toLowerCase()
+  return itineraryMatchesInterest(
+    itinerary.categories,
+    itinerary.category,
+    interestSlug,
   );
 }
 
@@ -125,10 +120,18 @@ export default async function ItinerariesPage({ searchParams }: ItinerariesPageP
                         </span>
                       </div>
                       {itinerary.category && (
-                        <div className="absolute top-16 left-4 right-16 z-10 pointer-events-none">
-                          <span className="inline-flex items-center max-w-full truncate px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold text-[#1D1D1F]">
-                            {itinerary.category}
-                          </span>
+                        <div className="absolute top-16 left-4 right-16 z-10 pointer-events-none flex flex-wrap gap-2">
+                          {(itinerary.categories?.length
+                            ? itinerary.categories
+                            : [itinerary.category]
+                          ).map((category) => (
+                            <span
+                              key={category}
+                              className="inline-flex items-center max-w-full truncate px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold text-[#1D1D1F]"
+                            >
+                              {category}
+                            </span>
+                          ))}
                         </div>
                       )}
                       <div className="absolute top-4 right-4 z-20">

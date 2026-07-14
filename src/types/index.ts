@@ -126,6 +126,8 @@ export interface Itinerary {
   countrySlug?: string;
   region: string;
   regionSlug?: string;
+  regionSlugs?: string[];
+  regions?: string[];
   duration: string;
   price: number;
   image: string;
@@ -139,6 +141,7 @@ export interface Itinerary {
   extras?: ItineraryExtras;
   heroVideoId?: string;
   category?: string;
+  categories?: string[];
   steps?: ItineraryStep[];
 }
 

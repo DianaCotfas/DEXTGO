@@ -3,6 +3,11 @@ import { featuredItineraries } from "@/data/itineraries";
 import { ITINERARY_STEPS } from "@/data/itinerary-steps";
 import type { Database, Json } from "@/lib/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  resolveItineraryCategories,
+  resolveItineraryRegionSlugs,
+  syncLegacyTaxonomyFields,
+} from "@/lib/itinerary-taxonomy";
 
 function humanizeSlug(slug: string): string {
   return slug
@@ -60,25 +65,39 @@ function buildRegionPayload() {
 }
 
 function buildItineraryPayload() {
-  return featuredItineraries.map((item) => ({
-    slug: item.slug,
-    title: item.title,
-    excerpt: item.excerpt ?? null,
-    description: item.description ?? null,
-    sales_preview: item.salesPreview ?? null,
-    preview_image_urls: item.previewImages ?? [],
-    extras: (item.extras ?? null) as Json | null,
-    hero_image_url: item.image ?? null,
-    hero_video_id: item.heroVideoId ?? null,
-    country_slug: item.countrySlug ?? null,
-    region_slug: item.regionSlug ?? null,
-    duration: item.duration ?? null,
-    price_cents: Math.max(0, Math.round((item.price ?? 0) * 100)),
-    currency: "eur",
-    status: "published" as const,
-    category: item.category ?? null,
-    category_color: null,
-  }));
+  return featuredItineraries.map((item) => {
+    const regionSlugs = resolveItineraryRegionSlugs(
+      item.regionSlug ? [item.regionSlug] : [],
+      item.regionSlug,
+    );
+    const categories = resolveItineraryCategories(
+      item.category ? [item.category] : [],
+      item.category,
+    );
+    const legacy = syncLegacyTaxonomyFields({ regionSlugs, categories });
+
+    return {
+      slug: item.slug,
+      title: item.title,
+      excerpt: item.excerpt ?? null,
+      description: item.description ?? null,
+      sales_preview: item.salesPreview ?? null,
+      preview_image_urls: item.previewImages ?? [],
+      extras: (item.extras ?? null) as Json | null,
+      hero_image_url: item.image ?? null,
+      hero_video_id: item.heroVideoId ?? null,
+      country_slug: item.countrySlug ?? null,
+      region_slugs: regionSlugs,
+      region_slug: legacy.region_slug,
+      duration: item.duration ?? null,
+      price_cents: Math.max(0, Math.round((item.price ?? 0) * 100)),
+      currency: "eur",
+      status: "published" as const,
+      categories,
+      category: legacy.category,
+      category_color: null,
+    };
+  });
 }
 
 function buildBlogPayload() {

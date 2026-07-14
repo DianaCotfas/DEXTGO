@@ -35,7 +35,6 @@ export function StepAccordion({
   onSelectStep,
   locked,
 }: StepAccordionProps) {
-  const autoExpandSections = !locked;
   // Group steps by day preserving insertion order
   const dayOrder: number[] = [];
   const byDay: Record<number, ItineraryStep[]> = {};
@@ -156,10 +155,11 @@ export function StepAccordion({
                         </div>
                       )}
                       {stepIntro && (
-                        <div className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]">
-                          <div className="px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#0A84FF]">
-                            Step Intro
-                          </div>
+                        <details className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02] group/section">
+                          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#0A84FF] flex items-center justify-between gap-2">
+                            <span>Step Intro</span>
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#0A84FF]/70 transition-transform group-open/section:rotate-180" />
+                          </summary>
                           <div className="border-t border-black/[0.06] px-3 pb-3 pt-2">
                             <div className="prose prose-sm max-w-none text-foreground/75">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -167,16 +167,14 @@ export function StepAccordion({
                               </ReactMarkdown>
                             </div>
                           </div>
-                        </div>
+                        </details>
                       )}
 
                       {(step.infoData || step.address || step.googleMapsUrl || step.officialUrl || (step.extraLinks && step.extraLinks.length > 0)) && (
-                        <details
-                          open={autoExpandSections}
-                          className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]"
-                        >
-                          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#16A34A]">
-                            Info Data
+                        <details className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02] group/section">
+                          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#16A34A] flex items-center justify-between gap-2">
+                            <span>Info Data</span>
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#16A34A]/70 transition-transform group-open/section:rotate-180" />
                           </summary>
                           <div className="border-t border-black/[0.06] px-3 pb-3 pt-2">
                             {step.infoData && (
@@ -233,12 +231,10 @@ export function StepAccordion({
                       )}
 
                       {(stepDescription || stepDescriptionKids) && (
-                        <details
-                          open={autoExpandSections}
-                          className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]"
-                        >
-                          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#0A84FF]">
-                            Description
+                        <details className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02] group/section">
+                          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#0A84FF] flex items-center justify-between gap-2">
+                            <span>Description</span>
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#0A84FF]/70 transition-transform group-open/section:rotate-180" />
                           </summary>
                           <div className="border-t border-black/[0.06] px-3 pb-3 pt-2 space-y-3">
                             {stepDescription && (
@@ -264,12 +260,10 @@ export function StepAccordion({
                         </details>
                       )}
                       {step.expertTips && (
-                        <details
-                          open={autoExpandSections}
-                          className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02]"
-                        >
-                          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#16A34A]">
-                            Expert Tips
+                        <details className="mt-2 rounded-xl border border-black/[0.08] bg-black/[0.02] group/section">
+                          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#16A34A] flex items-center justify-between gap-2">
+                            <span>Expert Tips</span>
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#16A34A]/70 transition-transform group-open/section:rotate-180" />
                           </summary>
                           <div className="border-t border-black/[0.06] px-3 pb-3 pt-2">
                             <div className="prose prose-sm max-w-none text-foreground/75">

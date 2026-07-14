@@ -102,12 +102,21 @@ If your repo root is `DEXTGO` on GitHub (flat layout), use that folder instead.
 
 ### 1. Session variables
 
+Copy this **entire block** into PowerShell before any `vercel` command. Variables only live in the current window.
+
 ```powershell
+cd D:\Personal\dextgo\dextgo-web
+
 $env:XDG_DATA_HOME = "$env:LOCALAPPDATA\Temp\vercel-xdg"
-$TOKEN = "PASTE_DIANA_VERCEL_TOKEN"
-$SCOPE = "diana-cotfas-projects"
+$env:VERCEL_TOKEN = "PASTE_DIANA_VERCEL_TOKEN"
+$VERCEL_TEAM = "diana-cotfas-projects"
 $DEPLOY_HOOK = "https://api.vercel.com/v1/integrations/deploy/prj_DEGnmKCo9S7tw60rhx7lCCtC6P02/fNWapzn9p3"
+
+# Sanity check — must print Diana's team/user, not an error
+npx vercel whoami --scope $VERCEL_TEAM --token $env:VERCEL_TOKEN
 ```
+
+If you see `option requires argument: --scope`, you skipped this block or opened a new terminal.
 
 ### 2. Verify build locally
 
@@ -143,17 +152,72 @@ git push diana main
 
 ### 5. Sync env vars to Vercel (from `.env.local`)
 
+**Recommended — one script, hard to mess up:**
+
 ```powershell
+# After section 1 (VERCEL_TOKEN must be set)
+.\scripts\sync-env-to-vercel.ps1
+```
+
+**Manual loop** (only if you already ran section 1 and `vercel whoami` works):
+
+```powershell
+if ([string]::IsNullOrWhiteSpace($env:VERCEL_TOKEN)) {
+  throw 'Set $env:VERCEL_TOKEN first (see section 1)'
+}
+
 $skip = @('SUPABASE_PROJECT_REF','SUPABASE_ACCESS_TOKEN','SUPABASE_DB_PASSWORD')
 Get-Content '.env.local' | Where-Object { $_ -and -not $_.StartsWith('#') -and $_.Contains('=') } | ForEach-Object {
   $parts = $_ -split '=', 2
   $name = $parts[0].Trim()
   $value = $parts[1]
   if ($skip -contains $name -or [string]::IsNullOrWhiteSpace($value)) { return }
-  npx vercel env rm $name production --yes --scope $SCOPE --token $TOKEN 2>$null
-  $value | npx vercel env add $name production --scope $SCOPE --token $TOKEN
+  Write-Host "Syncing $name ..."
+  npx vercel env rm $name production --yes --scope $VERCEL_TEAM --token $env:VERCEL_TOKEN 2>$null
+  npx vercel env add $name production --value $value --yes --scope $VERCEL_TEAM --token $env:VERCEL_TOKEN
 }
 ```
+
+### 5a. Update one credential only (e.g. `OPENAI_API_KEY`)
+
+After editing the value in `.env.local`, run **§1** (session vars), then:
+
+```powershell
+$NAME = "OPENAI_API_KEY"
+$val = (Get-Content '.env.local' | Where-Object { $_ -match "^${NAME}=" }) -replace "^${NAME}=",''
+if ([string]::IsNullOrWhiteSpace($val)) { throw "No value for $NAME in .env.local" }
+
+npx vercel env rm $NAME production --yes --scope $VERCEL_TEAM --token $env:VERCEL_TOKEN
+npx vercel env add $NAME production --value $val --yes --scope $VERCEL_TEAM --token $env:VERCEL_TOKEN
+```
+
+Change `$NAME` for other keys (`R2_ACCESS_KEY_ID`, `STRIPE_SECRET_KEY`, etc.).  
+If you also changed `AUDIO_PROVIDER`, `OPENAI_TTS_VOICE`, or `OPENAI_TTS_MODEL`, repeat for each name.
+
+### 5b. View / verify that credential on Vercel
+
+```powershell
+# Confirm it exists on production
+npx vercel env ls production --scope $VERCEL_TEAM --token $env:VERCEL_TOKEN | Select-String $NAME
+
+# Read the stored value (temp file — do not commit)
+$CHECK = ".env.vercel.check"
+npx vercel env pull $CHECK --environment=production --yes --scope $VERCEL_TEAM --token $env:VERCEL_TOKEN
+$remote = (Get-Content $CHECK | Where-Object { $_ -match "^${NAME}=" }) -replace "^${NAME}=",''
+Remove-Item $CHECK -ErrorAction SilentlyContinue
+
+if ([string]::IsNullOrWhiteSpace($remote)) {
+  Write-Host "$NAME is missing on Vercel production"
+} else {
+  Write-Host "$NAME on Vercel: $($remote.Substring(0, [Math]::Min(8, $remote.Length)))... ($($remote.Length) chars)"
+  # Full value locally only: Write-Host $remote
+}
+
+$local = (Get-Content '.env.local' | Where-Object { $_ -match "^${NAME}=" }) -replace "^${NAME}=",''
+if ($local -eq $remote) { Write-Host "OK: .env.local matches Vercel" } else { Write-Host "Mismatch — re-run step 5a" }
+```
+
+**You must redeploy** (step 6) — Vercel does not apply new env values to the running site until the next production build.
 
 ### 6. Trigger production deploy
 
@@ -164,7 +228,7 @@ Invoke-RestMethod -Method POST -Uri $DEPLOY_HOOK
 ### 7. Wait until Ready
 
 ```powershell
-npx vercel ls dextgo --scope $SCOPE --token $TOKEN
+npx vercel ls dextgo --scope $VERCEL_TEAM --token $env:VERCEL_TOKEN
 ```
 
 When the latest row shows **Ready**, continue.
